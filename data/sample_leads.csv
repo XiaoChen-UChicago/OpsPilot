@@ -1,0 +1,12 @@
+company,website,contact_name,title,email,industry,employee_count,country,description,source
+Northstar AI,https://northstar-ai.example,Maya Patel,Co-Founder,mayap@northstar-ai.example,Artificial Intelligence,42,United States,"Builds AI agents for high-volume customer operations and is preparing to scale enterprise deployments.",Demo dataset
+ForgeLine,https://forgeline.example,Daniel Kim,VP Operations,daniel@forgeline.example,Manufacturing,180,United States,"Industrial software company replacing manual factory reporting with connected workflow data.",Demo dataset
+ClearLedger,https://clearledger.example,Sofia Martinez,Head of Strategy,sofia@clearledger.example,Financial Services,95,United States,"Fintech platform helping finance teams review payments and exceptions across fragmented systems.",Demo dataset
+Beacon Health Systems,https://beacon-health.example,Jordan Lee,Director of Innovation,jordan@beacon-health.example,Healthcare,420,United States,"Healthcare operations platform coordinating patient access workflows across multiple locations.",Demo dataset
+StackHarbor,https://stackharbor.example,Alex Morgan,Founder,alex@stackharbor.example,Software,24,Canada,"Developer platform growing its customer base while managing research and qualification manually.",Demo dataset
+Atlas Advisory,https://atlas-advisory.example,Priya Shah,Managing Director,priya@atlas-advisory.example,Professional Services,65,United Kingdom,"Advisory firm producing recurring market research and client-ready analysis for growth teams.",Demo dataset
+Circuit Grove,https://circuitgrove.example,Noah Williams,Engineering Manager,noah@circuitgrove.example,Electronic Hardware,760,United States,"Designs electronics components for robotics and automotive customers.",Demo dataset
+Mosaic Learning,https://mosaic-learning.example,Emma Chen,Product Manager,emma@mosaic-learning.example,Education,120,Singapore,"Learning platform experimenting with personalized AI tutoring and multilingual content.",Demo dataset
+Verde Logistics,https://verde-logistics.example,Liam Brown,Chief Operating Officer,liam@verde-logistics.example,Logistics,310,Mexico,"Coordinates cross-border shipments through several manual carrier and customer handoffs.",Demo dataset
+Pulse Commerce,https://pulse-commerce.example,Olivia Davis,Head of Growth,olivia@pulse-commerce.example,Software,88,United States,"Commerce software team scaling outbound research and partner qualification across new markets.",Demo dataset
+
