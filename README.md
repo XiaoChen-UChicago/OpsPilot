@@ -10,7 +10,7 @@ OpsPilot turns scattered account research into a transparent, reviewable go-to-m
 
 > A recruiter should be able to see the product decision, the evidence behind it, and the next action before reading the implementation.
 
-The application is designed as a portfolio demonstration of practical AI operations and product judgment. It works without an API key and ships with synthetic contacts, so anyone can explore the complete workflow safely.
+The application is designed as a portfolio demonstration of practical AI operations and product judgment. It works without an API key and ships with synthetic contacts, so anyone can explore the complete workflow safely. A separately configured workspace deployment can add OIDC sign-in and an explicitly approved email batch sender.
 
 ## Why this project exists
 
@@ -20,7 +20,7 @@ OpsPilot keeps the useful automation while making the decision process visible:
 
 - every score includes its reasons and missing evidence;
 - public website research is limited to URLs supplied by the user;
-- outreach is generated as a draft and never sent automatically;
+- the public demo keeps outreach in draft or simulation mode;
 - data can be imported and exported as CSV;
 - the local CRM uses SQLite and requires no external account.
 
@@ -77,7 +77,7 @@ Open `http://localhost:8501`. The synthetic demonstration dataset loads automati
 
 Open the hosted Streamlit demo: [opspilot-bmnuqoekeijj7opqkcrv5s.streamlit.app](https://opspilot-bmnuqoekeijj7opqkcrv5s.streamlit.app/).
 
-The demo uses synthetic contacts and keeps outreach in draft mode for human review.
+The demo uses synthetic contacts and keeps outreach in draft or simulation mode for human review. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the optional authenticated workspace deployment.
 
 ## CSV schema
 
@@ -107,7 +107,8 @@ Users can change the weights and company-size range in the interface. This is a 
 ## Responsible-use choices
 
 - The included contacts and companies are synthetic.
-- OpsPilot does not send messages or automate high-volume outreach.
+- the public demo does not send messages or automate high-volume outreach;
+- authenticated workspace mode limits approved batches to 20 messages and keeps the mailbox token in memory;
 - Users are prompted to verify company claims and recipients before using a draft.
 - Invalid email addresses are removed during normalization.
 - Local CRM data and secrets are excluded from version control.

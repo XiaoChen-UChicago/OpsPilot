@@ -9,6 +9,8 @@ import plotly.express as px
 import streamlit as st
 
 from opspilot.enrichment import enrich_dataframe
+from opspilot.auth import access_token, auth_is_configured, configured_provider, current_user, is_logged_in, render_login
+from opspilot.mailer import MailSendError, send_batch
 from opspilot.models import LEAD_COLUMNS, canonicalize_leads
 from opspilot.outreach import create_outreach_columns, generate_draft
 from opspilot.scoring import DEFAULT_INDUSTRIES, ScoringProfile, score_dataframe
@@ -24,6 +26,15 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+AUTH_ENABLED = auth_is_configured()
+AUTH_PROVIDER = configured_provider()
+if AUTH_ENABLED and AUTH_PROVIDER and not is_logged_in():
+    render_login(AUTH_PROVIDER)
+    st.stop()
+
+USER_PROFILE = current_user() if AUTH_ENABLED else {"email": "demo", "name": "Demo workspace", "subject": "demo"}
+WORKSPACE_ID = USER_PROFILE["subject"] or USER_PROFILE["email"] or "demo"
 
 st.markdown(
     """
@@ -83,13 +94,20 @@ def ensure_scored(frame: pd.DataFrame, profile: ScoringProfile | None = None) ->
 
 
 if "leads" not in st.session_state:
-    st.session_state.leads = ensure_scored(load_sample())
+    saved_leads = load_leads(WORKSPACE_ID) if AUTH_ENABLED else pd.DataFrame()
+    st.session_state.leads = ensure_scored(saved_leads[LEAD_COLUMNS]) if not saved_leads.empty else (
+        ensure_scored(load_sample()) if not AUTH_ENABLED else ensure_scored(pd.DataFrame(columns=LEAD_COLUMNS))
+    )
 if "demo_sends" not in st.session_state:
     st.session_state.demo_sends = []
 
 with st.sidebar:
     st.markdown("### ◈ OpsPilot")
     st.caption("AI-assisted lead research and workflow automation")
+    if AUTH_ENABLED:
+        st.caption(f"Signed in as {USER_PROFILE['email']}")
+        if st.button("Sign out", use_container_width=True):
+            st.logout()
     st.markdown("---")
     st.markdown("**Workflow**")
     st.markdown("1. Import leads\n2. Add public context\n3. Score with visible rules\n4. Review outreach drafts\n5. Manage the pipeline")
@@ -272,67 +290,110 @@ with research_tab:
 
     with result_col:
         st.markdown("#### Explainable ranking")
-        selected_company = st.selectbox("Inspect an account", st.session_state.leads["company"].tolist())
-        selected = st.session_state.leads[st.session_state.leads["company"] == selected_company].iloc[0]
-        metric_a, metric_b, metric_c = st.columns(3)
-        metric_a.metric("Fit score", int(selected["lead_score"]))
-        metric_b.metric("Priority", selected["priority_tier"])
-        metric_c.metric("Employees", int(selected["employee_count"]) or "Unknown")
-        st.markdown("**Why this account received its score**")
-        for reason in str(selected["score_reasons"]).split(" | "):
-            st.success(reason)
-        if selected["research_gaps"]:
-            st.markdown("**What should be verified next**")
-            for gap in str(selected["research_gaps"]).split(" | "):
-                st.warning(gap)
+        if st.session_state.leads.empty:
+            st.info("Add an account in Lead Intake before inspecting a score.")
+        else:
+            selected_company = st.selectbox("Inspect an account", st.session_state.leads["company"].tolist())
+            selected = st.session_state.leads[st.session_state.leads["company"] == selected_company].iloc[0]
+            metric_a, metric_b, metric_c = st.columns(3)
+            metric_a.metric("Fit score", int(selected["lead_score"]))
+            metric_b.metric("Priority", selected["priority_tier"])
+            metric_c.metric("Employees", int(selected["employee_count"]) or "Unknown")
+            st.markdown("**Why this account received its score**")
+            for reason in str(selected["score_reasons"]).split(" | "):
+                st.success(reason)
+            if selected["research_gaps"]:
+                st.markdown("**What should be verified next**")
+                for gap in str(selected["research_gaps"]).split(" | "):
+                    st.warning(gap)
 
 with outreach_tab:
     st.subheader("Prepare outreach for human review")
     st.caption("OpsPilot drafts messages and offers a safe send simulation. No email leaves this demo.")
-    selected_company = st.selectbox(
-        "Choose an account",
-        st.session_state.leads.sort_values("lead_score", ascending=False)["company"].tolist(),
-        key="outreach_company",
-    )
-    selected = st.session_state.leads[st.session_state.leads["company"] == selected_company].iloc[0]
-    subject, body = generate_draft(selected)
-    context_col, draft_col = st.columns([0.8, 1.3])
-    with context_col:
-        st.markdown("#### Account context")
-        st.write(f"**Industry:** {selected['industry'] or 'Unknown'}")
-        st.write(f"**Contact:** {selected['contact_name'] or 'Unknown'} — {selected['title'] or 'Unknown role'}")
-        st.write(f"**Score:** {selected['lead_score']} ({selected['priority_tier']})")
-        st.write(f"**Source:** {selected['source']}")
-        with st.expander("Scoring evidence"):
-            st.write(selected["score_reasons"])
-    with draft_col:
-        st.markdown("#### Review-ready draft")
-        edited_subject = st.text_input("Subject", value=subject, key=f"outreach_subject_{selected_company}")
-        edited_body = st.text_area("Message", value=body, height=320, key=f"outreach_body_{selected_company}")
-        st.caption("Review the facts, tone, and recipient before using the demo action below.")
-        recipient = str(selected.get("email", "")).strip() or "demo.recipient@example.com"
-        st.markdown(f"**Demo recipient:** `{recipient}`")
-        approved = st.checkbox("I reviewed this draft and recipient", key=f"outreach_approved_{selected_company}")
-        if st.button("Simulate send", type="primary", use_container_width=True, disabled=not approved):
-            st.session_state.demo_sends.insert(0, {
-                "company": selected_company,
-                "recipient": recipient,
-                "subject": edited_subject,
-                "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "status": "Simulated — not sent",
-            })
-            st.success("Demo send recorded. No email was sent.")
+    if st.session_state.leads.empty:
+        st.info("Add an account in Lead Intake before preparing outreach.")
+    else:
+        selected_company = st.selectbox(
+            "Choose an account",
+            st.session_state.leads.sort_values("lead_score", ascending=False)["company"].tolist(),
+            key="outreach_company",
+        )
+        selected = st.session_state.leads[st.session_state.leads["company"] == selected_company].iloc[0]
+        subject, body = generate_draft(selected)
+        context_col, draft_col = st.columns([0.8, 1.3])
+        with context_col:
+            st.markdown("#### Account context")
+            st.write(f"**Industry:** {selected['industry'] or 'Unknown'}")
+            st.write(f"**Contact:** {selected['contact_name'] or 'Unknown'} — {selected['title'] or 'Unknown role'}")
+            st.write(f"**Score:** {selected['lead_score']} ({selected['priority_tier']})")
+            st.write(f"**Source:** {selected['source']}")
+            with st.expander("Scoring evidence"):
+                st.write(selected["score_reasons"])
+        with draft_col:
+            st.markdown("#### Review-ready draft")
+            edited_subject = st.text_input("Subject", value=subject, key=f"outreach_subject_{selected_company}")
+            edited_body = st.text_area("Message", value=body, height=320, key=f"outreach_body_{selected_company}")
+            st.caption("Review the facts, tone, and recipient before using the demo action below.")
+            recipient = str(selected.get("email", "")).strip() or "demo.recipient@example.com"
+            st.markdown(f"**Demo recipient:** `{recipient}`")
+            approved = st.checkbox("I reviewed this draft and recipient", key=f"outreach_approved_{selected_company}")
+            if st.button("Simulate send", type="primary", use_container_width=True, disabled=not approved):
+                st.session_state.demo_sends.insert(0, {
+                    "company": selected_company,
+                    "recipient": recipient,
+                    "subject": edited_subject,
+                    "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "status": "Simulated — not sent",
+                })
+                st.success("Demo send recorded. No email was sent.")
 
     if st.session_state.demo_sends:
         st.markdown("#### Demo send history")
         st.dataframe(pd.DataFrame(st.session_state.demo_sends), use_container_width=True, hide_index=True)
+
+    if AUTH_ENABLED:
+        st.divider()
+        st.markdown("#### Send an approved batch")
+        st.caption("Choose up to 20 recipients. OpsPilot sends only after you review and approve this batch.")
+        eligible = st.session_state.leads[st.session_state.leads["email"].str.len() > 0]
+        batch_companies = st.multiselect(
+            "Recipients",
+            eligible["company"].tolist(),
+            key="batch_recipients",
+            help="Only accounts with a valid email address are listed.",
+        )
+        batch_approved = st.checkbox("I reviewed this recipient list and approve this batch", key="batch_approved")
+        if len(batch_companies) > 20:
+            st.error("A single send action is limited to 20 recipients.")
+        if st.button(
+            "Send approved batch",
+            type="primary",
+            use_container_width=True,
+            disabled=not batch_companies or not batch_approved or len(batch_companies) > 20,
+        ):
+            token = access_token()
+            if not token:
+                st.error("Mailbox connection is not configured for sending. Ask the workspace administrator to enable access tokens.")
+            else:
+                messages = []
+                for company in batch_companies:
+                    row = eligible[eligible["company"] == company].iloc[0]
+                    draft_subject, draft_body = generate_draft(row)
+                    messages.append({"recipient": str(row["email"]), "subject": draft_subject, "body": draft_body})
+                try:
+                    sent_count = send_batch(AUTH_PROVIDER or "", token, messages, max_messages=20)
+                    st.success(f"Sent {sent_count} approved message(s) from the connected mailbox.")
+                except MailSendError as error:
+                    st.error(f"The batch was not completed: {error}")
+    else:
+        st.info("Workspace mode is off in the public demo. Sign-in and real batch sending appear after an OIDC provider is configured.")
 
 with crm_tab:
     st.subheader("Manage a lightweight local pipeline")
     save_col, export_col = st.columns([1, 1])
     with save_col:
         if st.button("Save current accounts to CRM", type="primary", use_container_width=True):
-            saved = upsert_leads(st.session_state.leads)
+            saved = upsert_leads(st.session_state.leads, WORKSPACE_ID)
             st.success(f"Saved {saved} account(s) to the local CRM.")
     with export_col:
         export_data = st.session_state.leads.to_csv(index=False)
@@ -344,7 +405,7 @@ with crm_tab:
             use_container_width=True,
         )
 
-    stored = load_leads()
+    stored = load_leads(WORKSPACE_ID)
     if stored.empty:
         st.info("Save the current accounts to start the CRM pipeline.")
     else:
@@ -356,7 +417,7 @@ with crm_tab:
             current_index = PIPELINE_STATUSES.index(current_row["status"]) if current_row["status"] in PIPELINE_STATUSES else 0
             new_status = st.selectbox("Pipeline status", PIPELINE_STATUSES, index=current_index)
             if st.button("Update status", use_container_width=True):
-                update_status(labels[selected_label], new_status)
+                update_status(labels[selected_label], new_status, WORKSPACE_ID)
                 st.success("Pipeline status updated.")
                 st.rerun()
         with pipeline_col:

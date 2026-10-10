@@ -12,15 +12,18 @@ DEFAULT_STATUS = "New"
 PIPELINE_STATUSES = ["New", "Researched", "Qualified", "Contacted", "Meeting", "Nurture", "Disqualified"]
 
 
-def database_path() -> Path:
+def database_path(workspace_id: str = "demo") -> Path:
     configured = os.getenv("OPSPILOT_DB_PATH", ".opspilot/opspilot.db")
     path = Path(configured)
+    if workspace_id and workspace_id != "demo":
+        workspace_hash = hashlib.sha256(workspace_id.encode("utf-8")).hexdigest()[:12]
+        path = path.with_name(f"{path.stem}-{workspace_hash}{path.suffix}")
     path.parent.mkdir(parents=True, exist_ok=True)
     return path
 
 
-def _connection() -> sqlite3.Connection:
-    connection = sqlite3.connect(database_path())
+def _connection(workspace_id: str = "demo") -> sqlite3.Connection:
+    connection = sqlite3.connect(database_path(workspace_id))
     connection.row_factory = sqlite3.Row
     connection.execute(
         """
@@ -55,11 +58,11 @@ def lead_id(row: pd.Series) -> str:
     return hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16]
 
 
-def upsert_leads(frame: pd.DataFrame) -> int:
+def upsert_leads(frame: pd.DataFrame, workspace_id: str = "demo") -> int:
     if frame.empty:
         return 0
 
-    connection = _connection()
+    connection = _connection(workspace_id)
     columns = [
         "company", "website", "contact_name", "title", "email", "industry", "employee_count",
         "country", "description", "source", "lead_score", "priority_tier", "score_reasons",
@@ -103,17 +106,17 @@ def upsert_leads(frame: pd.DataFrame) -> int:
     return len(frame)
 
 
-def load_leads() -> pd.DataFrame:
-    connection = _connection()
+def load_leads(workspace_id: str = "demo") -> pd.DataFrame:
+    connection = _connection(workspace_id)
     frame = pd.read_sql_query("SELECT * FROM leads ORDER BY lead_score DESC, updated_at DESC", connection)
     connection.close()
     return frame
 
 
-def update_status(selected_lead_id: str, status: str) -> None:
+def update_status(selected_lead_id: str, status: str, workspace_id: str = "demo") -> None:
     if status not in PIPELINE_STATUSES:
         raise ValueError(f"Unknown pipeline status: {status}")
-    connection = _connection()
+    connection = _connection(workspace_id)
     with connection:
         connection.execute(
             "UPDATE leads SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE lead_id = ?",

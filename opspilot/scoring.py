@@ -115,5 +115,9 @@ def score_lead(row: pd.Series, profile: ScoringProfile) -> dict[str, object]:
 def score_dataframe(frame: pd.DataFrame, profile: ScoringProfile) -> pd.DataFrame:
     scored = frame.copy()
     results = [score_lead(row, profile) for _, row in scored.iterrows()]
-    return pd.concat([scored.reset_index(drop=True), pd.DataFrame(results)], axis=1)
+    score_columns = ["lead_score", "priority_tier", "score_reasons", "research_gaps"]
+    return pd.concat(
+        [scored.reset_index(drop=True), pd.DataFrame(results, columns=score_columns)],
+        axis=1,
+    )
 
