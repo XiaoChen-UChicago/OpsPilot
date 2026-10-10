@@ -11,6 +11,7 @@ import streamlit as st
 
 from opspilot.enrichment import enrich_dataframe
 from opspilot.auth import access_token, auth_is_configured, configured_provider, current_user, is_logged_in, render_login
+from opspilot.discovery import DiscoveryError, search_web
 from opspilot.mailer import MailSendError, send_batch
 from opspilot.models import LEAD_COLUMNS, canonicalize_leads
 from opspilot.outreach import create_outreach_columns, generate_draft
@@ -156,6 +157,14 @@ def discover_opportunities(goal: str, industries: list[str], countries: list[str
     return pd.DataFrame(rows).sort_values(["opportunity_score", "lead_score"], ascending=False).reset_index(drop=True) if rows else pd.DataFrame()
 
 
+def configured_discovery_key() -> str:
+    try:
+        section = st.secrets.get("discovery", {})
+        return str(section.get("api_key", "")).strip()
+    except Exception:
+        return ""
+
+
 if "leads" not in st.session_state:
     saved_leads = load_leads(WORKSPACE_ID) if AUTH_ENABLED else pd.DataFrame()
     st.session_state.leads = ensure_scored(saved_leads[LEAD_COLUMNS]) if not saved_leads.empty else (
@@ -222,10 +231,29 @@ with discovery_tab:
     with discovery_col3:
         discovery_size = st.slider("Company size", 1, 2000, (10, 500), key="discovery_size")
 
+    discovery_mode = st.radio(
+        "Discovery source",
+        ["Live web", "Demo catalog"],
+        index=0 if configured_discovery_key() else 1,
+        horizontal=True,
+        help="Live web mode searches public web pages through the configured research provider. Demo catalog mode is always available.",
+    )
+
     if st.button("Discover opportunities", type="primary", use_container_width=True):
-        st.session_state.discovery_results = discover_opportunities(
-            goal, discovery_industries, discovery_countries, discovery_size
-        )
+        if discovery_mode == "Live web":
+            try:
+                st.session_state.discovery_results = search_web(
+                    configured_discovery_key(), goal, discovery_industries, discovery_countries, discovery_size
+                )
+                st.session_state.discovery_source = "Live web"
+            except DiscoveryError as error:
+                st.error(str(error))
+                st.session_state.discovery_results = pd.DataFrame()
+        else:
+            st.session_state.discovery_results = discover_opportunities(
+                goal, discovery_industries, discovery_countries, discovery_size
+            )
+            st.session_state.discovery_source = "Demo catalog"
 
     if "discovery_results" in st.session_state:
         discovered = st.session_state.discovery_results
@@ -237,6 +265,7 @@ with discovery_tab:
             metric_a.metric("Opportunities found", len(discovered))
             metric_b.metric("Strong matches", high_count)
             metric_c.metric("Top opportunity", discovered.iloc[0]["company"])
+            st.caption(f"Source: {st.session_state.get('discovery_source', 'Demo catalog')}. Verify every result before contacting anyone.")
             st.markdown("#### Opportunity radar")
             st.dataframe(
                 discovered[["company", "industry", "country", "opportunity_score", "recommended_action"]],
@@ -253,6 +282,8 @@ with discovery_tab:
                 st.write(f"**Recommended action:** {opportunity['recommended_action']}")
                 st.write(f"**Contact:** {opportunity['contact_name']} · {opportunity['title']}")
                 st.write(f"**Public context:** {opportunity['description']}")
+                if str(opportunity.get("source_url", "")).strip():
+                    st.markdown(f"**Source:** [{opportunity.get('source_title') or opportunity['source_url']}]({opportunity['source_url']})")
             with action_col:
                 st.markdown("#### Next step")
                 st.caption("Move a selected opportunity into the normal research, outreach, and CRM workflow.")

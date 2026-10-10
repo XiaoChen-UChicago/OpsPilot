@@ -18,6 +18,22 @@ For a private test, keep the app in **Testing** and add each tester under **Test
 
 The currently public demo is intentionally unauthenticated. Configure Google secrets in a separate Streamlit deployment if you want to keep the portfolio demo public while running a private sending workspace.
 
+## Enable live opportunity discovery
+
+The **Discover Opportunities** tab has two modes:
+
+- **Demo catalog** uses the safe synthetic catalog committed with the repository.
+- **Live web** searches public web pages through the configured research provider and keeps the result title, URL, and snippet visible for verification.
+
+To enable Live web mode, add this optional block to Streamlit secrets:
+
+```toml
+[discovery]
+api_key = "your-web-research-api-key"
+```
+
+The current adapter sends the goal and selected filters to a Tavily search endpoint. The app does not claim that a search snippet is verified company truth: each result remains a research lead until the user checks the linked source.
+
 ## Provider alternative: Microsoft Entra
 
 Microsoft Entra remains supported. Replace the Google block with:
