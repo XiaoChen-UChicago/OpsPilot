@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from io import StringIO
 from pathlib import Path
+import re
 
 import pandas as pd
 import plotly.express as px
@@ -110,6 +111,50 @@ def personalize_template(template: str, row: pd.Series) -> str:
     return rendered
 
 
+DISCOVERY_STOPWORDS = {
+    "the", "and", "for", "with", "that", "this", "from", "into", "looking", "find",
+    "companies", "company", "teams", "team", "want", "need", "help", "based", "using",
+}
+
+
+def discover_opportunities(goal: str, industries: list[str], countries: list[str], size_range: tuple[int, int]) -> pd.DataFrame:
+    """Rank the safe demo catalog against a plain-language opportunity brief."""
+    catalog = load_sample()
+    if industries:
+        catalog = catalog[catalog["industry"].isin(industries)]
+    if countries:
+        catalog = catalog[catalog["country"].isin(countries)]
+    catalog = catalog[
+        (catalog["employee_count"] >= size_range[0]) & (catalog["employee_count"] <= size_range[1])
+    ].copy()
+
+    terms = [term for term in re.findall(r"[a-zA-Z0-9]+", goal.lower()) if len(term) > 2 and term not in DISCOVERY_STOPWORDS]
+    rows: list[dict[str, object]] = []
+    for _, row in catalog.iterrows():
+        context = " ".join(
+            str(row.get(field, "")) for field in ["company", "industry", "title", "description", "country"]
+        ).lower()
+        matches = [term for term in terms if term in context]
+        base_score = score_lead(row, ScoringProfile())
+        score = min(100, int(base_score["lead_score"]) + min(25, len(matches) * 6))
+        signals = []
+        if matches:
+            signals.append(f"Goal keywords matched: {', '.join(matches[:4])}")
+        signals.append(f"{row['industry']} company with {int(row['employee_count'])} employees")
+        if any(word in context for word in ["scal", "manual", "workflow", "ai", "agent"]):
+            signals.append("Public description shows an active workflow or scaling signal")
+        action = "Research the account" if score < 65 else "Prepare a tailored first conversation"
+        rows.append(
+            {
+                **row.to_dict(),
+                "opportunity_score": score,
+                "match_reason": " · ".join(signals),
+                "recommended_action": action,
+            }
+        )
+    return pd.DataFrame(rows).sort_values(["opportunity_score", "lead_score"], ascending=False).reset_index(drop=True) if rows else pd.DataFrame()
+
+
 if "leads" not in st.session_state:
     saved_leads = load_leads(WORKSPACE_ID) if AUTH_ENABLED else pd.DataFrame()
     st.session_state.leads = ensure_scored(saved_leads[LEAD_COLUMNS]) if not saved_leads.empty else (
@@ -145,9 +190,77 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-dashboard_tab, intake_tab, research_tab, outreach_tab, crm_tab, method_tab = st.tabs(
-    ["Command Center", "Lead Intake", "Research & Score", "Outreach Studio", "CRM Pipeline", "Methodology"]
+discovery_tab, dashboard_tab, intake_tab, research_tab, outreach_tab, crm_tab, method_tab = st.tabs(
+    ["Discover Opportunities", "Command Center", "Lead Intake", "Research & Score", "Outreach Studio", "CRM Pipeline", "Methodology"]
 )
+
+with discovery_tab:
+    st.subheader("Describe your goal")
+    st.caption("Start with an objective. OpsPilot will discover and rank the most relevant opportunities before you build a contact list.")
+    goal = st.text_area(
+        "What are you trying to find?",
+        value="Find AI and software companies that are scaling operations and may need workflow automation.",
+        height=90,
+        key="discovery_goal",
+    )
+    discovery_col1, discovery_col2, discovery_col3 = st.columns([1.2, 1.2, 1])
+    with discovery_col1:
+        discovery_industries = st.multiselect(
+            "Industries",
+            sorted(load_sample()["industry"].unique().tolist()),
+            default=["Artificial Intelligence", "Software"],
+            key="discovery_industries",
+        )
+    with discovery_col2:
+        discovery_countries = st.multiselect(
+            "Countries",
+            sorted(load_sample()["country"].unique().tolist()),
+            default=["United States"],
+            key="discovery_countries",
+        )
+    with discovery_col3:
+        discovery_size = st.slider("Company size", 1, 2000, (10, 500), key="discovery_size")
+
+    if st.button("Discover opportunities", type="primary", use_container_width=True):
+        st.session_state.discovery_results = discover_opportunities(
+            goal, discovery_industries, discovery_countries, discovery_size
+        )
+
+    if "discovery_results" in st.session_state:
+        discovered = st.session_state.discovery_results
+        if discovered.empty:
+            st.warning("No matching opportunities found. Broaden the industry, country, or company-size filters.")
+        else:
+            high_count = int((discovered["opportunity_score"] >= 75).sum())
+            metric_a, metric_b, metric_c = st.columns(3)
+            metric_a.metric("Opportunities found", len(discovered))
+            metric_b.metric("Strong matches", high_count)
+            metric_c.metric("Top opportunity", discovered.iloc[0]["company"])
+            st.markdown("#### Opportunity radar")
+            st.dataframe(
+                discovered[["company", "industry", "country", "opportunity_score", "recommended_action"]],
+                use_container_width=True,
+                hide_index=True,
+                column_config={"opportunity_score": st.column_config.ProgressColumn("Opportunity fit", min_value=0, max_value=100)},
+            )
+            selected_discovery = st.selectbox("Inspect an opportunity", discovered["company"].tolist(), key="discovery_selected")
+            opportunity = discovered[discovered["company"] == selected_discovery].iloc[0]
+            detail_col, action_col = st.columns([1.35, 0.85])
+            with detail_col:
+                st.markdown(f"### {opportunity['company']}")
+                st.write(f"**Why it matches:** {opportunity['match_reason']}")
+                st.write(f"**Recommended action:** {opportunity['recommended_action']}")
+                st.write(f"**Contact:** {opportunity['contact_name']} · {opportunity['title']}")
+                st.write(f"**Public context:** {opportunity['description']}")
+            with action_col:
+                st.markdown("#### Next step")
+                st.caption("Move a selected opportunity into the normal research, outreach, and CRM workflow.")
+                if st.button("Add to my workspace", type="primary", use_container_width=True, key="add_discovered"):
+                    combined = pd.concat([st.session_state.leads[LEAD_COLUMNS], pd.DataFrame([opportunity[LEAD_COLUMNS]])], ignore_index=True)
+                    st.session_state.leads = ensure_scored(combined)
+                    if AUTH_ENABLED:
+                        upsert_leads(st.session_state.leads, WORKSPACE_ID)
+                    st.success(f"Added {opportunity['company']} to your workspace.")
 
 with dashboard_tab:
     leads = st.session_state.leads
