@@ -147,6 +147,7 @@ def discover_opportunities(goal: str, industries: list[str], countries: list[str
         rows.append(
             {
                 **row.to_dict(),
+                "lead_score": int(base_score["lead_score"]),
                 "opportunity_score": score,
                 "match_reason": " · ".join(signals),
                 "recommended_action": action,
