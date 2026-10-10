@@ -4,6 +4,7 @@ from datetime import datetime
 from io import StringIO
 from pathlib import Path
 import re
+from urllib.parse import urlparse
 
 import pandas as pd
 import plotly.express as px
@@ -216,6 +217,67 @@ def decision_score(table: pd.DataFrame, weights: dict[str, int]) -> pd.DataFrame
     return scored.sort_values("decision_score", ascending=False).reset_index(drop=True)
 
 
+def evidence_assessment(row: pd.Series) -> dict[str, object]:
+    """Separate captured evidence from assumptions that still need validation."""
+    source_url = str(row.get("source_url", row.get("website", ""))).strip()
+    source_title = str(row.get("source_title", "")).strip()
+    description = str(row.get("description", "")).strip()
+    host = urlparse(source_url).netloc.lower().removeprefix("www.")
+    profile_hosts = {"cbinsights.com", "crunchbase.com", "pitchbook.com", "tracxn.com", "apollo.io", "linkedin.com"}
+    is_profile = any(host == item or host.endswith("." + item) for item in profile_hosts)
+    source_kind = "Company profile" if is_profile else "Official or product page" if source_url else "No source captured"
+    confidence = 85 if source_url and description else 60 if source_url else 30
+    facts = []
+    if source_url:
+        facts.append(f"A public source was captured: {source_title or host or source_url}")
+    if description:
+        facts.append("The source page contains public context related to the search goal.")
+    if str(row.get("match_reason", "")).strip():
+        facts.append(str(row.get("match_reason", "")).strip())
+    assumptions = [
+        "The company is still a current fit for the selected industry and country.",
+        "The company has a live need and budget for this opportunity.",
+        "The page represents the right company entity rather than a similarly named organization.",
+    ]
+    try:
+        employee_count = int(float(row.get("employee_count", 0) or 0))
+    except (TypeError, ValueError):
+        employee_count = 0
+    if not employee_count:
+        assumptions.append("Company size has not been independently verified.")
+    if not str(row.get("contact_name", "")).strip() and not str(row.get("email", "")).strip():
+        assumptions.append("The correct decision-maker and contact route are still unknown.")
+    return {
+        "source_kind": source_kind,
+        "confidence": confidence,
+        "facts": facts or ["No public evidence has been captured yet."],
+        "assumptions": assumptions,
+    }
+
+
+def validation_experiment(row: pd.Series, score_row: pd.Series | None = None) -> dict[str, str]:
+    """Suggest the smallest next test that could change the decision."""
+    assessment = evidence_assessment(row)
+    gaps = []
+    if "Company size has not been independently verified." in assessment["assumptions"]:
+        gaps.append("company size")
+    if "The correct decision-maker and contact route are still unknown." in assessment["assumptions"]:
+        gaps.append("the right decision-maker")
+    gaps.append("whether workflow automation is an active priority")
+    target = ", ".join(gaps[:2])
+    score_value = float(score_row.get("decision_score", 0)) if score_row is not None else 0
+    test = (
+        f"Run a 15-minute validation conversation focused on {target}. "
+        "Share one specific workflow hypothesis, then ask what they currently do and what would make a change worthwhile."
+    )
+    success = "A qualified reply or call confirms an active problem, an owner, and a plausible next step."
+    if score_value >= 75:
+        action = "High-priority test: validate the buyer and timing before investing in a full outreach sequence."
+    else:
+        action = "Evidence-first test: collect the missing facts before spending time on a full outreach sequence."
+    return {"action": action, "test": test, "success": success}
+
+
 if "leads" not in st.session_state:
     saved_leads = load_leads(WORKSPACE_ID) if AUTH_ENABLED else pd.DataFrame()
     st.session_state.leads = ensure_scored(saved_leads[LEAD_COLUMNS]) if not saved_leads.empty else (
@@ -335,6 +397,18 @@ with discovery_tab:
                 st.write(f"**Public context:** {opportunity['description']}")
                 if str(opportunity.get("source_url", "")).strip():
                     st.markdown(f"**Source:** [{opportunity.get('source_title') or opportunity['source_url']}]({opportunity['source_url']})")
+                assessment = evidence_assessment(opportunity)
+                st.markdown("#### Evidence quality")
+                evidence_col1, evidence_col2 = st.columns(2)
+                evidence_col1.metric("Source type", assessment["source_kind"])
+                evidence_col2.metric("Evidence confidence", f"{assessment['confidence']}/100")
+                with st.expander("Known facts vs. assumptions"):
+                    st.markdown("**Captured facts**")
+                    for fact in assessment["facts"]:
+                        st.markdown(f"- {fact}")
+                    st.markdown("**Still unverified**")
+                    for assumption in assessment["assumptions"]:
+                        st.markdown(f"- {assumption}")
             with action_col:
                 st.markdown("#### Next step")
                 st.caption("Move a selected opportunity into the normal research, outreach, and CRM workflow.")
@@ -379,7 +453,7 @@ with decision_tab:
                 "company": st.column_config.TextColumn("Company", disabled=True),
                 "fit": st.column_config.NumberColumn("Strategic fit", min_value=0, max_value=100, step=5),
                 "upside": st.column_config.NumberColumn("Upside", min_value=0, max_value=100, step=5),
-                "evidence": st.column_config.NumberColumn("Evidence", min_value=0, max_value=100, step=5),
+                "evidence": st.column_config.NumberColumn("Evidence confidence", min_value=0, max_value=100, step=5),
                 "speed": st.column_config.NumberColumn("Speed", min_value=0, max_value=100, step=5),
                 "risk": st.column_config.NumberColumn("Risk", min_value=0, max_value=100, step=5),
             },
@@ -413,15 +487,26 @@ with decision_tab:
         selected_decision = st.selectbox("Open a decision brief", scored_decisions["company"].tolist(), key="decision_selected_company")
         selected_score = scored_decisions[scored_decisions["company"] == selected_decision].iloc[0]
         selected_source = candidates[candidates["company"] == selected_decision].iloc[0]
+        selected_assessment = evidence_assessment(selected_source)
+        selected_experiment = validation_experiment(selected_source, selected_score)
         st.markdown("#### 4. Decision brief")
         brief_col, next_col = st.columns([1.2, 1])
         with brief_col:
             st.metric("Recommendation", selected_score["recommendation"], f"{selected_score['decision_score']:.1f}/100")
             st.write(f"**Evidence:** {str(selected_source.get('description', '')).strip()[:700] or 'No public evidence captured yet.'}")
+            st.caption(f"{selected_assessment['source_kind']} · Evidence confidence {selected_assessment['confidence']}/100")
+            with st.expander("Decision basis"):
+                st.markdown("**Facts captured from the source**")
+                for fact in selected_assessment["facts"]:
+                    st.markdown(f"- {fact}")
+                st.markdown("**Assumptions that could change the result**")
+                for assumption in selected_assessment["assumptions"]:
+                    st.markdown(f"- {assumption}")
             source_url = str(selected_source.get("source_url", selected_source.get("website", ""))).strip()
             if source_url:
                 st.markdown(f"**Source:** [{selected_source.get('source_title') or source_url}]({source_url})")
         with next_col:
+            st.info(f"**{selected_experiment['action']}**\n\n{selected_experiment['test']}\n\n**Success signal:** {selected_experiment['success']}")
             st.text_area("What is still unknown?", placeholder="Example: confirm budget owner, timing, and whether this workflow is a current priority.", key="decision_unknowns")
             st.text_area("Next validation test", placeholder="Example: send one tailored note or schedule a 15-minute discovery call.", key="decision_next_test")
             if st.button("Create decision memo", type="primary", key="create_decision_memo"):
@@ -430,7 +515,7 @@ with decision_tab:
                     f"Recommendation: {selected_score['recommendation']} ({selected_score['decision_score']:.1f}/100)\n\n"
                     f"Scores: fit {selected_score['fit']}, upside {selected_score['upside']}, evidence {selected_score['evidence']}, speed {selected_score['speed']}, risk {selected_score['risk']}.\n\n"
                     f"Unknowns: {st.session_state.get('decision_unknowns', '').strip() or 'Not recorded'}\n\n"
-                    f"Next validation test: {st.session_state.get('decision_next_test', '').strip() or 'Not recorded'}\n"
+                    f"Next validation test: {st.session_state.get('decision_next_test', '').strip() or selected_experiment['test']}\n"
                 )
                 st.download_button("Download decision memo", memo, file_name=f"{selected_decision.lower().replace(' ', '-')}-decision.md", key="download_decision_memo")
 
