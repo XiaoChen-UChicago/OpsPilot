@@ -39,6 +39,11 @@ _NON_COMPANY_PATH_PARTS = {
     "jobs", "job", "search", "directory", "list", "rankings", "roundup",
     "careers", "career", "openings", "positions",
 }
+_GENERIC_LABEL_WORDS = {
+    "automation", "consulting", "engineer", "engineering", "intern", "jobs", "platform",
+    "services", "software", "solutions", "specialist", "technology", "technologies",
+    "workflow",
+}
 
 
 def _host(url: str) -> str:
@@ -84,6 +89,8 @@ def _company_name(title: str, url: str) -> str:
         # A company label is short and should not read like a sentence or job.
         words = candidate.split()
         if len(words) <= 8 and not candidate.endswith((".", ":")):
+            if _GENERIC_LABEL_WORDS.intersection(word.lower().strip(".,:&") for word in words):
+                return _domain_brand(url) or candidate
             return candidate
     return _domain_brand(url)
 
