@@ -8,8 +8,10 @@ import streamlit as st
 def _auth_secrets() -> dict[str, Any]:
     """Return auth settings when Streamlit secrets are configured."""
     try:
-        configured = st.secrets.get("auth", {})
-        return dict(configured) if configured else {}
+        # Streamlit's secrets object supports mapping access, but older
+        # runtimes do not consistently expose ``get`` for nested sections.
+        configured = st.secrets["auth"]
+        return {str(key): value for key, value in configured.items()} if configured else {}
     except Exception:
         return {}
 
