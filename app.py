@@ -27,9 +27,13 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    :root { --ink: #102a43; --muted: #627d98; --accent: #0f766e; --surface: #f6f8fb; }
-    .stApp { background: linear-gradient(180deg, #fbfcfe 0%, #f5f8fb 100%); }
+    :root { --ink: #102a43; --muted: #526579; --accent: #0f766e; --accent-dark: #0b5f59; --surface: #f6f8fb; --line: #d9e2ec; }
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] { background: linear-gradient(180deg, #fbfcfe 0%, #f5f8fb 100%) !important; color: var(--ink) !important; }
     .block-container { padding-top: 2.1rem; max-width: 1240px; }
+    [data-testid="stHeader"] { background: rgba(251, 252, 254, .88) !important; }
+    [data-testid="stSidebar"] { background: #111827 !important; }
+    [data-testid="stSidebar"] * { color: #e6edf5 !important; }
+    [data-testid="stSidebar"] hr { border-color: rgba(230, 237, 245, .18) !important; }
     .hero {
         padding: 1.3rem 1.5rem; border: 1px solid #d9e2ec; border-radius: 18px;
         background: linear-gradient(135deg, #ffffff 0%, #effcf9 100%);
@@ -38,8 +42,22 @@ st.markdown(
     .hero h1 { color: var(--ink); margin: 0 0 .35rem 0; letter-spacing: -.03em; }
     .hero p { color: var(--muted); margin: 0; font-size: 1.04rem; }
     .eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: .12em; font-weight: 700; font-size: .74rem; }
-    div[data-testid="stMetric"] { background: white; border: 1px solid #e4e7eb; padding: .9rem; border-radius: 14px; }
-    div[data-testid="stDataFrame"] { border: 1px solid #e4e7eb; border-radius: 12px; overflow: hidden; }
+    div[data-testid="stMetric"] { background: #ffffff !important; border: 1px solid var(--line); padding: .9rem; border-radius: 14px; box-shadow: 0 4px 14px rgba(16, 42, 67, .04); }
+    div[data-testid="stMetricLabel"], div[data-testid="stMetricLabel"] p { color: #526579 !important; }
+    div[data-testid="stMetricValue"] { color: var(--ink) !important; }
+    div[data-testid="stDataFrame"] { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #ffffff !important; }
+    .stCaption, [data-testid="stCaptionContainer"] { color: #526579 !important; }
+    .stTextInput label, .stTextArea label, .stNumberInput label, .stSelectbox label, .stMultiSelect label, .stSlider label, .stFileUploader label { color: #334e68 !important; font-weight: 600 !important; }
+    [data-baseweb="input"], [data-baseweb="textarea"], [data-baseweb="select"] > div, [data-testid="stNumberInput"] input { background: #ffffff !important; color: var(--ink) !important; border-color: #bcccdc !important; }
+    [data-baseweb="input"] input, [data-baseweb="textarea"] textarea, [data-testid="stNumberInput"] input { color: var(--ink) !important; -webkit-text-fill-color: var(--ink) !important; }
+    [data-baseweb="input"] input::placeholder, [data-baseweb="textarea"] textarea::placeholder { color: #829ab1 !important; opacity: 1 !important; }
+    [data-testid="stForm"] { background: rgba(255,255,255,.84); border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.1rem .2rem; box-shadow: 0 8px 24px rgba(16, 42, 67, .05); }
+    button[kind="primary"] { background: var(--accent) !important; border-color: var(--accent) !important; color: #ffffff !important; }
+    button[kind="primary"]:hover { background: var(--accent-dark) !important; border-color: var(--accent-dark) !important; }
+    button:not([kind="primary"]) { color: #334e68 !important; border-color: #bcccdc !important; }
+    [data-baseweb="tab-list"] { gap: .45rem; border-bottom: 1px solid var(--line); }
+    [data-baseweb="tab"] { color: #526579 !important; font-weight: 600 !important; }
+    [data-baseweb="tab"][aria-selected="true"] { color: var(--accent) !important; border-bottom-color: var(--accent) !important; }
     .signal { border-left: 4px solid #0f766e; padding: .7rem 1rem; background: #f0fdfa; border-radius: 0 10px 10px 0; }
     </style>
     """,
