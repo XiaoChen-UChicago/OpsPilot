@@ -93,6 +93,23 @@ def ensure_scored(frame: pd.DataFrame, profile: ScoringProfile | None = None) ->
     return create_outreach_columns(scored)
 
 
+def personalize_template(template: str, row: pd.Series) -> str:
+    """Render the small, explainable set of personalization fields used by campaigns."""
+    contact_name = str(row.get("contact_name", "")).strip()
+    first_name = contact_name.split()[0] if contact_name else "there"
+    values = {
+        "first_name": first_name,
+        "contact_name": contact_name or "there",
+        "company": str(row.get("company", "your team")).strip(),
+        "title": str(row.get("title", "")).strip() or "your role",
+        "industry": str(row.get("industry", "")).strip() or "your industry",
+    }
+    rendered = template
+    for key, value in values.items():
+        rendered = rendered.replace("{{" + key + "}}", value)
+    return rendered
+
+
 if "leads" not in st.session_state:
     saved_leads = load_leads(WORKSPACE_ID) if AUTH_ENABLED else pd.DataFrame()
     st.session_state.leads = ensure_scored(saved_leads[LEAD_COLUMNS]) if not saved_leads.empty else (
@@ -309,7 +326,7 @@ with research_tab:
 
 with outreach_tab:
     st.subheader("Prepare outreach for human review")
-    st.caption("OpsPilot drafts messages and offers a safe send simulation. No email leaves this demo.")
+    st.caption("OpsPilot drafts messages for review. Real email is sent only after you approve a specific batch.")
     if st.session_state.leads.empty:
         st.info("Add an account in Lead Intake before preparing outreach.")
     else:
@@ -354,7 +371,7 @@ with outreach_tab:
     if AUTH_ENABLED:
         st.divider()
         st.markdown("#### Send an approved batch")
-        st.caption("Choose up to 20 recipients. OpsPilot sends only after you review and approve this batch.")
+        st.caption("Choose up to 20 recipients, edit one campaign template, preview the personalized messages, then approve the send.")
         eligible = st.session_state.leads[st.session_state.leads["email"].str.len() > 0]
         batch_companies = st.multiselect(
             "Recipients",
@@ -362,6 +379,39 @@ with outreach_tab:
             key="batch_recipients",
             help="Only accounts with a valid email address are listed.",
         )
+        batch_subject = ""
+        batch_body = ""
+        if batch_companies:
+            first_batch_row = eligible[eligible["company"] == batch_companies[0]].iloc[0]
+            default_subject, default_body = generate_draft(first_batch_row)
+            st.markdown("##### Campaign message")
+            batch_subject = st.text_input(
+                "Subject template",
+                value=default_subject,
+                key="batch_subject_template",
+            )
+            batch_body = st.text_area(
+                "Message template",
+                value=default_body,
+                height=260,
+                key="batch_body_template",
+                help="Use {{first_name}}, {{contact_name}}, {{company}}, {{title}}, and {{industry}} for transparent personalization.",
+            )
+            st.caption("Available fields: {{first_name}} · {{contact_name}} · {{company}} · {{title}} · {{industry}}")
+            preview_rows = []
+            for company in batch_companies:
+                preview_row = eligible[eligible["company"] == company].iloc[0]
+                personalized_body = personalize_template(batch_body, preview_row)
+                preview_rows.append(
+                    {
+                        "company": company,
+                        "recipient": str(preview_row["email"]),
+                        "subject": personalize_template(batch_subject, preview_row),
+                        "opening": personalized_body.splitlines()[0] if personalized_body.splitlines() else "",
+                    }
+                )
+            with st.expander("Preview personalized messages", expanded=True):
+                st.dataframe(pd.DataFrame(preview_rows), use_container_width=True, hide_index=True)
         batch_approved = st.checkbox("I reviewed this recipient list and approve this batch", key="batch_approved")
         if len(batch_companies) > 20:
             st.error("A single send action is limited to 20 recipients.")
@@ -378,8 +428,13 @@ with outreach_tab:
                 messages = []
                 for company in batch_companies:
                     row = eligible[eligible["company"] == company].iloc[0]
-                    draft_subject, draft_body = generate_draft(row)
-                    messages.append({"recipient": str(row["email"]), "subject": draft_subject, "body": draft_body})
+                    messages.append(
+                        {
+                            "recipient": str(row["email"]),
+                            "subject": personalize_template(batch_subject, row),
+                            "body": personalize_template(batch_body, row),
+                        }
+                    )
                 try:
                     sent_count = send_batch(AUTH_PROVIDER or "", token, messages, max_messages=20)
                     st.success(f"Sent {sent_count} approved message(s) from the connected mailbox.")
