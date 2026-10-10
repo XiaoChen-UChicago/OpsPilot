@@ -295,9 +295,12 @@ with st.sidebar:
             st.logout()
     st.markdown("---")
     st.markdown("**Workflow**")
-    st.markdown("1. Import leads\n2. Add public context\n3. Score with visible rules\n4. Review outreach drafts\n5. Manage the pipeline")
+    st.markdown("1. Discover opportunities\n2. Compare decisions\n3. Validate the best option\n4. Act and track")
     st.markdown("---")
-    st.info("Demo mode uses synthetic contacts. Drafts are never sent automatically.")
+    if AUTH_ENABLED:
+        st.success("Workspace connected. Outreach still requires human approval.")
+    else:
+        st.info("Practice mode uses sample accounts. Drafts are never sent automatically.")
     if st.button("Reset demo data", type="primary", use_container_width=True):
         st.session_state.leads = ensure_scored(load_sample())
         st.rerun()
@@ -313,11 +316,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-discovery_tab, decision_tab, dashboard_tab, intake_tab, research_tab, outreach_tab, crm_tab, method_tab = st.tabs(
-    ["Discover Opportunities", "Decision Canvas", "Command Center", "Lead Intake", "Research & Score", "Outreach Studio", "CRM Pipeline", "Methodology"]
+home_tab, discover_tab, decide_tab, action_tab, method_tab = st.tabs(
+    ["Home", "Discover", "Decide", "Act & Track", "Help"]
 )
 
-with discovery_tab:
+with discover_tab:
     st.subheader("Describe your goal")
     st.caption("Start with an objective. OpsPilot will discover and rank the most relevant opportunities before you build a contact list.")
     goal = st.text_area(
@@ -419,7 +422,7 @@ with discovery_tab:
                         upsert_leads(st.session_state.leads, WORKSPACE_ID)
                     st.success(f"Added {opportunity['company']} to your workspace.")
 
-with decision_tab:
+with decide_tab:
     st.subheader("Decision Canvas")
     st.caption("Turn a promising result into a transparent decision. Edit assumptions, compare options, and record the next validation step.")
     candidates = decision_candidates()
@@ -519,7 +522,7 @@ with decision_tab:
                 )
                 st.download_button("Download decision memo", memo, file_name=f"{selected_decision.lower().replace(' ', '-')}-decision.md", key="download_decision_memo")
 
-with dashboard_tab:
+with home_tab:
     leads = st.session_state.leads
     high_priority = leads[leads["priority_tier"] == "High"]
     average_score = round(float(leads["lead_score"].mean()), 1) if not leads.empty else 0
@@ -587,275 +590,278 @@ with dashboard_tab:
 
     st.markdown('<div class="signal"><b>Decision support, not autopilot.</b> Every score shows its evidence and gaps before a person decides what happens next.</div>', unsafe_allow_html=True)
 
-with intake_tab:
-    st.subheader("Bring leads into one clean workflow")
-    st.caption("Upload a CSV, add an account manually, or start with the synthetic demonstration dataset.")
-    upload_col, manual_col = st.columns(2)
+with action_tab:
+    intake_tab, research_tab, outreach_tab, crm_tab = st.tabs(["Import", "Research", "Outreach", "Track"])
 
-    with upload_col:
-        st.markdown("#### CSV import")
-        uploaded = st.file_uploader("Upload lead data", type=["csv"])
-        st.caption("Recommended columns: " + ", ".join(LEAD_COLUMNS))
-        template = pd.DataFrame(columns=LEAD_COLUMNS).to_csv(index=False)
-        st.download_button("Download CSV template", template, "opspilot_lead_template.csv", "text/csv")
-        if uploaded is not None:
-            imported = canonicalize_leads(pd.read_csv(uploaded))
-            st.dataframe(imported, use_container_width=True, hide_index=True)
-            if st.button("Add imported leads", type="primary"):
-                combined = pd.concat([st.session_state.leads[LEAD_COLUMNS], imported], ignore_index=True)
+    with intake_tab:
+        st.subheader("Bring leads into one clean workflow")
+        st.caption("Upload a CSV, add an account manually, or start with the synthetic demonstration dataset.")
+        upload_col, manual_col = st.columns(2)
+
+        with upload_col:
+            st.markdown("#### CSV import")
+            uploaded = st.file_uploader("Upload lead data", type=["csv"])
+            st.caption("Recommended columns: " + ", ".join(LEAD_COLUMNS))
+            template = pd.DataFrame(columns=LEAD_COLUMNS).to_csv(index=False)
+            st.download_button("Download CSV template", template, "opspilot_lead_template.csv", "text/csv")
+            if uploaded is not None:
+                imported = canonicalize_leads(pd.read_csv(uploaded))
+                st.dataframe(imported, use_container_width=True, hide_index=True)
+                if st.button("Add imported leads", type="primary"):
+                    combined = pd.concat([st.session_state.leads[LEAD_COLUMNS], imported], ignore_index=True)
+                    st.session_state.leads = ensure_scored(combined)
+                    st.success(f"Added {len(imported)} account(s).")
+                    st.rerun()
+
+        with manual_col:
+            st.markdown("#### Manual account")
+            with st.form("manual_lead"):
+                company = st.text_input("Company *")
+                website = st.text_input("Website")
+                contact_name = st.text_input("Contact name")
+                title = st.text_input("Role/title")
+                email = st.text_input("Email")
+                industry = st.text_input("Industry")
+                employee_count = st.number_input("Employees", min_value=0, value=0, step=1)
+                description = st.text_area("What does the company do?")
+                submitted = st.form_submit_button("Add account", type="primary")
+            if submitted and company.strip():
+                new_lead = pd.DataFrame(
+                    [{
+                        "company": company, "website": website, "contact_name": contact_name,
+                        "title": title, "email": email, "industry": industry,
+                        "employee_count": employee_count, "country": "",
+                        "description": description, "source": "Manual entry",
+                    }]
+                )
+                combined = pd.concat([st.session_state.leads[LEAD_COLUMNS], new_lead], ignore_index=True)
                 st.session_state.leads = ensure_scored(combined)
-                st.success(f"Added {len(imported)} account(s).")
+                st.success(f"Added {company}.")
                 st.rerun()
 
-    with manual_col:
-        st.markdown("#### Manual account")
-        with st.form("manual_lead"):
-            company = st.text_input("Company *")
-            website = st.text_input("Website")
-            contact_name = st.text_input("Contact name")
-            title = st.text_input("Role/title")
-            email = st.text_input("Email")
-            industry = st.text_input("Industry")
-            employee_count = st.number_input("Employees", min_value=0, value=0, step=1)
-            description = st.text_area("What does the company do?")
-            submitted = st.form_submit_button("Add account", type="primary")
-        if submitted and company.strip():
-            new_lead = pd.DataFrame(
-                [{
-                    "company": company, "website": website, "contact_name": contact_name,
-                    "title": title, "email": email, "industry": industry,
-                    "employee_count": employee_count, "country": "",
-                    "description": description, "source": "Manual entry",
-                }]
+    with research_tab:
+        st.subheader("Define the ideal customer profile")
+        config_col, result_col = st.columns([0.8, 1.6])
+
+        with config_col:
+            target_industries = st.multiselect(
+                "Target industries",
+                options=sorted(set(st.session_state.leads["industry"].tolist() + DEFAULT_INDUSTRIES)),
+                default=DEFAULT_INDUSTRIES,
             )
-            combined = pd.concat([st.session_state.leads[LEAD_COLUMNS], new_lead], ignore_index=True)
-            st.session_state.leads = ensure_scored(combined)
-            st.success(f"Added {company}.")
-            st.rerun()
+            minimum, maximum = st.slider("Preferred company size", 1, 2000, (10, 500))
+            st.markdown("#### Score weights")
+            industry_weight = st.slider("Industry fit", 0, 40, 25)
+            size_weight = st.slider("Company size", 0, 40, 20)
+            buyer_weight = st.slider("Buyer relevance", 0, 40, 20)
+            intent_weight = st.slider("Automation signal", 0, 40, 25)
+            completeness_weight = st.slider("Data completeness", 0, 25, 10)
+            total_weight = industry_weight + size_weight + buyer_weight + intent_weight + completeness_weight
+            st.caption(f"Maximum raw score: {total_weight}. Scores are capped at 100.")
 
-with research_tab:
-    st.subheader("Define the ideal customer profile")
-    config_col, result_col = st.columns([0.8, 1.6])
-
-    with config_col:
-        target_industries = st.multiselect(
-            "Target industries",
-            options=sorted(set(st.session_state.leads["industry"].tolist() + DEFAULT_INDUSTRIES)),
-            default=DEFAULT_INDUSTRIES,
-        )
-        minimum, maximum = st.slider("Preferred company size", 1, 2000, (10, 500))
-        st.markdown("#### Score weights")
-        industry_weight = st.slider("Industry fit", 0, 40, 25)
-        size_weight = st.slider("Company size", 0, 40, 20)
-        buyer_weight = st.slider("Buyer relevance", 0, 40, 20)
-        intent_weight = st.slider("Automation signal", 0, 40, 25)
-        completeness_weight = st.slider("Data completeness", 0, 25, 10)
-        total_weight = industry_weight + size_weight + buyer_weight + intent_weight + completeness_weight
-        st.caption(f"Maximum raw score: {total_weight}. Scores are capped at 100.")
-
-        profile = ScoringProfile(
-            target_industries=target_industries,
-            min_employees=minimum,
-            max_employees=maximum,
-            industry_weight=industry_weight,
-            size_weight=size_weight,
-            buyer_weight=buyer_weight,
-            intent_weight=intent_weight,
-            completeness_weight=completeness_weight,
-        )
-        if st.button("Recalculate priorities", type="primary", use_container_width=True):
-            st.session_state.leads = ensure_scored(st.session_state.leads[LEAD_COLUMNS], profile)
-            st.success("Priorities recalculated with the visible rules above.")
-            st.rerun()
-
-        if st.button("Research public homepages", use_container_width=True):
-            with st.spinner("Reading supplied company homepages..."):
-                enriched = enrich_dataframe(st.session_state.leads[LEAD_COLUMNS])
-                st.session_state.leads = ensure_scored(enriched[LEAD_COLUMNS], profile)
-            st.success("Public website context added where available.")
-            st.rerun()
-
-    with result_col:
-        st.markdown("#### Explainable ranking")
-        if st.session_state.leads.empty:
-            st.info("Add an account in Lead Intake before inspecting a score.")
-        else:
-            selected_company = st.selectbox("Inspect an account", st.session_state.leads["company"].tolist())
-            selected = st.session_state.leads[st.session_state.leads["company"] == selected_company].iloc[0]
-            metric_a, metric_b, metric_c = st.columns(3)
-            metric_a.metric("Fit score", int(selected["lead_score"]))
-            metric_b.metric("Priority", selected["priority_tier"])
-            metric_c.metric("Employees", int(selected["employee_count"]) or "Unknown")
-            st.markdown("**Why this account received its score**")
-            for reason in str(selected["score_reasons"]).split(" | "):
-                st.success(reason)
-            if selected["research_gaps"]:
-                st.markdown("**What should be verified next**")
-                for gap in str(selected["research_gaps"]).split(" | "):
-                    st.warning(gap)
-
-with outreach_tab:
-    st.subheader("Prepare outreach for human review")
-    st.caption("OpsPilot drafts messages for review. Real email is sent only after you approve a specific batch.")
-    if st.session_state.leads.empty:
-        st.info("Add an account in Lead Intake before preparing outreach.")
-    else:
-        selected_company = st.selectbox(
-            "Choose an account",
-            st.session_state.leads.sort_values("lead_score", ascending=False)["company"].tolist(),
-            key="outreach_company",
-        )
-        selected = st.session_state.leads[st.session_state.leads["company"] == selected_company].iloc[0]
-        subject, body = generate_draft(selected)
-        context_col, draft_col = st.columns([0.8, 1.3])
-        with context_col:
-            st.markdown("#### Account context")
-            st.write(f"**Industry:** {selected['industry'] or 'Unknown'}")
-            st.write(f"**Contact:** {selected['contact_name'] or 'Unknown'} — {selected['title'] or 'Unknown role'}")
-            st.write(f"**Score:** {selected['lead_score']} ({selected['priority_tier']})")
-            st.write(f"**Source:** {selected['source']}")
-            with st.expander("Scoring evidence"):
-                st.write(selected["score_reasons"])
-        with draft_col:
-            st.markdown("#### Review-ready draft")
-            edited_subject = st.text_input("Subject", value=subject, key=f"outreach_subject_{selected_company}")
-            edited_body = st.text_area("Message", value=body, height=320, key=f"outreach_body_{selected_company}")
-            st.caption("Review the facts, tone, and recipient before using the demo action below.")
-            recipient = str(selected.get("email", "")).strip() or "demo.recipient@example.com"
-            st.markdown(f"**Demo recipient:** `{recipient}`")
-            approved = st.checkbox("I reviewed this draft and recipient", key=f"outreach_approved_{selected_company}")
-            if st.button("Simulate send", type="primary", use_container_width=True, disabled=not approved):
-                st.session_state.demo_sends.insert(0, {
-                    "company": selected_company,
-                    "recipient": recipient,
-                    "subject": edited_subject,
-                    "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                    "status": "Simulated — not sent",
-                })
-                st.success("Demo send recorded. No email was sent.")
-
-    if st.session_state.demo_sends:
-        st.markdown("#### Demo send history")
-        st.dataframe(pd.DataFrame(st.session_state.demo_sends), use_container_width=True, hide_index=True)
-
-    if AUTH_ENABLED:
-        st.divider()
-        st.markdown("#### Send an approved batch")
-        st.caption("Choose up to 20 recipients, edit one campaign template, preview the personalized messages, then approve the send.")
-        eligible = st.session_state.leads[st.session_state.leads["email"].str.len() > 0]
-        batch_companies = st.multiselect(
-            "Recipients",
-            eligible["company"].tolist(),
-            key="batch_recipients",
-            help="Only accounts with a valid email address are listed.",
-        )
-        batch_subject = ""
-        batch_body = ""
-        if batch_companies:
-            first_batch_row = eligible[eligible["company"] == batch_companies[0]].iloc[0]
-            default_subject, default_body = generate_draft(first_batch_row)
-            st.markdown("##### Campaign message")
-            batch_subject = st.text_input(
-                "Subject template",
-                value=default_subject,
-                key="batch_subject_template",
+            profile = ScoringProfile(
+                target_industries=target_industries,
+                min_employees=minimum,
+                max_employees=maximum,
+                industry_weight=industry_weight,
+                size_weight=size_weight,
+                buyer_weight=buyer_weight,
+                intent_weight=intent_weight,
+                completeness_weight=completeness_weight,
             )
-            batch_body = st.text_area(
-                "Message template",
-                value=default_body,
-                height=260,
-                key="batch_body_template",
-                help="Use {{first_name}}, {{contact_name}}, {{company}}, {{title}}, and {{industry}} for transparent personalization.",
-            )
-            st.caption("Available fields: {{first_name}} · {{contact_name}} · {{company}} · {{title}} · {{industry}}")
-            preview_rows = []
-            for company in batch_companies:
-                preview_row = eligible[eligible["company"] == company].iloc[0]
-                personalized_body = personalize_template(batch_body, preview_row)
-                preview_rows.append(
-                    {
-                        "company": company,
-                        "recipient": str(preview_row["email"]),
-                        "subject": personalize_template(batch_subject, preview_row),
-                        "opening": personalized_body.splitlines()[0] if personalized_body.splitlines() else "",
-                    }
-                )
-            with st.expander("Preview personalized messages", expanded=True):
-                st.dataframe(pd.DataFrame(preview_rows), use_container_width=True, hide_index=True)
-        batch_approved = st.checkbox("I reviewed this recipient list and approve this batch", key="batch_approved")
-        if len(batch_companies) > 20:
-            st.error("A single send action is limited to 20 recipients.")
-        if st.button(
-            "Send approved batch",
-            type="primary",
-            use_container_width=True,
-            disabled=not batch_companies or not batch_approved or len(batch_companies) > 20,
-        ):
-            token = access_token()
-            if not token:
-                st.error("Mailbox connection is not configured for sending. Ask the workspace administrator to enable access tokens.")
+            if st.button("Recalculate priorities", type="primary", use_container_width=True):
+                st.session_state.leads = ensure_scored(st.session_state.leads[LEAD_COLUMNS], profile)
+                st.success("Priorities recalculated with the visible rules above.")
+                st.rerun()
+
+            if st.button("Research public homepages", use_container_width=True):
+                with st.spinner("Reading supplied company homepages..."):
+                    enriched = enrich_dataframe(st.session_state.leads[LEAD_COLUMNS])
+                    st.session_state.leads = ensure_scored(enriched[LEAD_COLUMNS], profile)
+                st.success("Public website context added where available.")
+                st.rerun()
+
+        with result_col:
+            st.markdown("#### Explainable ranking")
+            if st.session_state.leads.empty:
+                st.info("Add an account in Lead Intake before inspecting a score.")
             else:
-                messages = []
+                selected_company = st.selectbox("Inspect an account", st.session_state.leads["company"].tolist())
+                selected = st.session_state.leads[st.session_state.leads["company"] == selected_company].iloc[0]
+                metric_a, metric_b, metric_c = st.columns(3)
+                metric_a.metric("Fit score", int(selected["lead_score"]))
+                metric_b.metric("Priority", selected["priority_tier"])
+                metric_c.metric("Employees", int(selected["employee_count"]) or "Unknown")
+                st.markdown("**Why this account received its score**")
+                for reason in str(selected["score_reasons"]).split(" | "):
+                    st.success(reason)
+                if selected["research_gaps"]:
+                    st.markdown("**What should be verified next**")
+                    for gap in str(selected["research_gaps"]).split(" | "):
+                        st.warning(gap)
+
+    with outreach_tab:
+        st.subheader("Prepare outreach for human review")
+        st.caption("OpsPilot drafts messages for review. Real email is sent only after you approve a specific batch.")
+        if st.session_state.leads.empty:
+            st.info("Add an account in Lead Intake before preparing outreach.")
+        else:
+            selected_company = st.selectbox(
+                "Choose an account",
+                st.session_state.leads.sort_values("lead_score", ascending=False)["company"].tolist(),
+                key="outreach_company",
+            )
+            selected = st.session_state.leads[st.session_state.leads["company"] == selected_company].iloc[0]
+            subject, body = generate_draft(selected)
+            context_col, draft_col = st.columns([0.8, 1.3])
+            with context_col:
+                st.markdown("#### Account context")
+                st.write(f"**Industry:** {selected['industry'] or 'Unknown'}")
+                st.write(f"**Contact:** {selected['contact_name'] or 'Unknown'} — {selected['title'] or 'Unknown role'}")
+                st.write(f"**Score:** {selected['lead_score']} ({selected['priority_tier']})")
+                st.write(f"**Source:** {selected['source']}")
+                with st.expander("Scoring evidence"):
+                    st.write(selected["score_reasons"])
+            with draft_col:
+                st.markdown("#### Review-ready draft")
+                edited_subject = st.text_input("Subject", value=subject, key=f"outreach_subject_{selected_company}")
+                edited_body = st.text_area("Message", value=body, height=320, key=f"outreach_body_{selected_company}")
+                st.caption("Review the facts, tone, and recipient before using the demo action below.")
+                recipient = str(selected.get("email", "")).strip() or "demo.recipient@example.com"
+                st.markdown(f"**Demo recipient:** `{recipient}`")
+                approved = st.checkbox("I reviewed this draft and recipient", key=f"outreach_approved_{selected_company}")
+                if st.button("Simulate send", type="primary", use_container_width=True, disabled=not approved):
+                    st.session_state.demo_sends.insert(0, {
+                        "company": selected_company,
+                        "recipient": recipient,
+                        "subject": edited_subject,
+                        "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                        "status": "Simulated — not sent",
+                    })
+                    st.success("Demo send recorded. No email was sent.")
+
+        if st.session_state.demo_sends:
+            st.markdown("#### Demo send history")
+            st.dataframe(pd.DataFrame(st.session_state.demo_sends), use_container_width=True, hide_index=True)
+
+        if AUTH_ENABLED:
+            st.divider()
+            st.markdown("#### Send an approved batch")
+            st.caption("Choose up to 20 recipients, edit one campaign template, preview the personalized messages, then approve the send.")
+            eligible = st.session_state.leads[st.session_state.leads["email"].str.len() > 0]
+            batch_companies = st.multiselect(
+                "Recipients",
+                eligible["company"].tolist(),
+                key="batch_recipients",
+                help="Only accounts with a valid email address are listed.",
+            )
+            batch_subject = ""
+            batch_body = ""
+            if batch_companies:
+                first_batch_row = eligible[eligible["company"] == batch_companies[0]].iloc[0]
+                default_subject, default_body = generate_draft(first_batch_row)
+                st.markdown("##### Campaign message")
+                batch_subject = st.text_input(
+                    "Subject template",
+                    value=default_subject,
+                    key="batch_subject_template",
+                )
+                batch_body = st.text_area(
+                    "Message template",
+                    value=default_body,
+                    height=260,
+                    key="batch_body_template",
+                    help="Use {{first_name}}, {{contact_name}}, {{company}}, {{title}}, and {{industry}} for transparent personalization.",
+                )
+                st.caption("Available fields: {{first_name}} · {{contact_name}} · {{company}} · {{title}} · {{industry}}")
+                preview_rows = []
                 for company in batch_companies:
-                    row = eligible[eligible["company"] == company].iloc[0]
-                    messages.append(
+                    preview_row = eligible[eligible["company"] == company].iloc[0]
+                    personalized_body = personalize_template(batch_body, preview_row)
+                    preview_rows.append(
                         {
-                            "recipient": str(row["email"]),
-                            "subject": personalize_template(batch_subject, row),
-                            "body": personalize_template(batch_body, row),
+                            "company": company,
+                            "recipient": str(preview_row["email"]),
+                            "subject": personalize_template(batch_subject, preview_row),
+                            "opening": personalized_body.splitlines()[0] if personalized_body.splitlines() else "",
                         }
                     )
-                try:
-                    sent_count = send_batch(AUTH_PROVIDER or "", token, messages, max_messages=20)
-                    st.success(f"Sent {sent_count} approved message(s) from the connected mailbox.")
-                except MailSendError as error:
-                    st.error(f"The batch was not completed: {error}")
-    else:
-        st.info("Workspace mode is off in the public demo. Sign-in and real batch sending appear after an OIDC provider is configured.")
+                with st.expander("Preview personalized messages", expanded=True):
+                    st.dataframe(pd.DataFrame(preview_rows), use_container_width=True, hide_index=True)
+            batch_approved = st.checkbox("I reviewed this recipient list and approve this batch", key="batch_approved")
+            if len(batch_companies) > 20:
+                st.error("A single send action is limited to 20 recipients.")
+            if st.button(
+                "Send approved batch",
+                type="primary",
+                use_container_width=True,
+                disabled=not batch_companies or not batch_approved or len(batch_companies) > 20,
+            ):
+                token = access_token()
+                if not token:
+                    st.error("Mailbox connection is not configured for sending. Ask the workspace administrator to enable access tokens.")
+                else:
+                    messages = []
+                    for company in batch_companies:
+                        row = eligible[eligible["company"] == company].iloc[0]
+                        messages.append(
+                            {
+                                "recipient": str(row["email"]),
+                                "subject": personalize_template(batch_subject, row),
+                                "body": personalize_template(batch_body, row),
+                            }
+                        )
+                    try:
+                        sent_count = send_batch(AUTH_PROVIDER or "", token, messages, max_messages=20)
+                        st.success(f"Sent {sent_count} approved message(s) from the connected mailbox.")
+                    except MailSendError as error:
+                        st.error(f"The batch was not completed: {error}")
+        else:
+            st.info("Workspace mode is off in the public demo. Sign-in and real batch sending appear after an OIDC provider is configured.")
 
-with crm_tab:
-    st.subheader("Manage a lightweight local pipeline")
-    save_col, export_col = st.columns([1, 1])
-    with save_col:
-        if st.button("Save current accounts to CRM", type="primary", use_container_width=True):
-            saved = upsert_leads(st.session_state.leads, WORKSPACE_ID)
-            st.success(f"Saved {saved} account(s) to the local CRM.")
-    with export_col:
-        export_data = st.session_state.leads.to_csv(index=False)
-        st.download_button(
-            "Export scored accounts",
-            export_data,
-            "opspilot_scored_leads.csv",
-            "text/csv",
-            use_container_width=True,
-        )
+    with crm_tab:
+        st.subheader("Manage a lightweight local pipeline")
+        save_col, export_col = st.columns([1, 1])
+        with save_col:
+            if st.button("Save current accounts to CRM", type="primary", use_container_width=True):
+                saved = upsert_leads(st.session_state.leads, WORKSPACE_ID)
+                st.success(f"Saved {saved} account(s) to the local CRM.")
+        with export_col:
+            export_data = st.session_state.leads.to_csv(index=False)
+            st.download_button(
+                "Export scored accounts",
+                export_data,
+                "opspilot_scored_leads.csv",
+                "text/csv",
+                use_container_width=True,
+            )
 
-    stored = load_leads(WORKSPACE_ID)
-    if stored.empty:
-        st.info("Save the current accounts to start the CRM pipeline.")
-    else:
-        update_col, pipeline_col = st.columns([0.7, 1.5])
-        with update_col:
-            labels = {f"{row['company']} · {row['status']}": row["lead_id"] for _, row in stored.iterrows()}
-            selected_label = st.selectbox("Account", labels.keys())
-            current_row = stored[stored["lead_id"] == labels[selected_label]].iloc[0]
-            current_index = PIPELINE_STATUSES.index(current_row["status"]) if current_row["status"] in PIPELINE_STATUSES else 0
-            new_status = st.selectbox("Pipeline status", PIPELINE_STATUSES, index=current_index)
-            if st.button("Update status", use_container_width=True):
-                update_status(labels[selected_label], new_status, WORKSPACE_ID)
-                st.success("Pipeline status updated.")
-                st.rerun()
-        with pipeline_col:
-            status_counts = stored["status"].value_counts().reindex(PIPELINE_STATUSES, fill_value=0).reset_index()
-            status_counts.columns = ["Status", "Accounts"]
-            pipeline_figure = px.funnel(status_counts, y="Status", x="Accounts", color_discrete_sequence=["#0f766e"])
-            pipeline_figure.update_layout(height=360, margin=dict(l=10, r=10, t=10, b=10))
-            st.plotly_chart(pipeline_figure, use_container_width=True)
-        st.dataframe(
-            stored[["company", "contact_name", "lead_score", "priority_tier", "status", "updated_at"]],
-            use_container_width=True,
-            hide_index=True,
-        )
+        stored = load_leads(WORKSPACE_ID)
+        if stored.empty:
+            st.info("Save the current accounts to start the CRM pipeline.")
+        else:
+            update_col, pipeline_col = st.columns([0.7, 1.5])
+            with update_col:
+                labels = {f"{row['company']} · {row['status']}": row["lead_id"] for _, row in stored.iterrows()}
+                selected_label = st.selectbox("Account", labels.keys())
+                current_row = stored[stored["lead_id"] == labels[selected_label]].iloc[0]
+                current_index = PIPELINE_STATUSES.index(current_row["status"]) if current_row["status"] in PIPELINE_STATUSES else 0
+                new_status = st.selectbox("Pipeline status", PIPELINE_STATUSES, index=current_index)
+                if st.button("Update status", use_container_width=True):
+                    update_status(labels[selected_label], new_status, WORKSPACE_ID)
+                    st.success("Pipeline status updated.")
+                    st.rerun()
+            with pipeline_col:
+                status_counts = stored["status"].value_counts().reindex(PIPELINE_STATUSES, fill_value=0).reset_index()
+                status_counts.columns = ["Status", "Accounts"]
+                pipeline_figure = px.funnel(status_counts, y="Status", x="Accounts", color_discrete_sequence=["#0f766e"])
+                pipeline_figure.update_layout(height=360, margin=dict(l=10, r=10, t=10, b=10))
+                st.plotly_chart(pipeline_figure, use_container_width=True)
+            st.dataframe(
+                stored[["company", "contact_name", "lead_score", "priority_tier", "status", "updated_at"]],
+                use_container_width=True,
+                hide_index=True,
+            )
 
 with method_tab:
     st.subheader("Product and data principles")
