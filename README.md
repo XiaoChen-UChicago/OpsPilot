@@ -4,6 +4,12 @@
 
 OpsPilot turns scattered account research into a transparent, reviewable go-to-market workflow. It imports leads, adds public company context, scores each account against a visible ideal customer profile, prepares personalized outreach drafts, and tracks the pipeline in a lightweight local CRM.
 
+**[Live demo](#run-locally)** · **[Product walkthrough](#product-walkthrough)** · **[Architecture](#architecture)**
+
+![OpsPilot command center](assets/command-center.svg)
+
+> A recruiter should be able to see the product decision, the evidence behind it, and the next action before reading the implementation.
+
 The application is designed as a portfolio demonstration of practical AI operations and product judgment. It works without an API key and ships with synthetic contacts, so anyone can explore the complete workflow safely.
 
 ## Why this project exists
@@ -26,6 +32,18 @@ OpsPilot keeps the useful automation while making the decision process visible:
 4. **Explain** why an account is high, medium, or low priority and what should be verified next.
 5. **Draft** contextual outreach for human review.
 6. **Track** status in a lightweight pipeline and export the result.
+
+### Explainable prioritization
+
+![Explainable account score](assets/explainable-score.svg)
+
+OpsPilot exposes the score components and research gaps instead of returning an unexplained ranking. This is useful when an operations or product team needs to challenge an assumption before acting on it.
+
+### Lightweight CRM handoff
+
+![OpsPilot CRM pipeline](assets/crm-pipeline.svg)
+
+The final step keeps the workflow connected to execution: each account has a visible status, a review history, and a next action without requiring a full CRM vendor setup.
 
 ## Architecture
 

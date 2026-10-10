@@ -1,0 +1,35 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="720" rx="24" fill="#F6F8FB"/>
+  <rect x="34" y="30" width="1212" height="660" rx="20" fill="white" stroke="#D9E2EC"/>
+  <text x="76" y="86" fill="#0F766E" font-family="Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="2">CRM PIPELINE</text>
+  <text x="76" y="128" fill="#102A43" font-family="Arial, sans-serif" font-size="29" font-weight="700">Move from research to action</text>
+  <text x="76" y="157" fill="#627D98" font-family="Arial, sans-serif" font-size="14">The workflow stores decisions locally and keeps every outbound step human-reviewed.</text>
+  <rect x="76" y="205" width="1100" height="368" rx="18" fill="#FBFCFE" stroke="#E4E7EB"/>
+  <text x="109" y="247" fill="#486581" font-family="Arial, sans-serif" font-size="12" font-weight="700">NEW</text>
+  <text x="329" y="247" fill="#486581" font-family="Arial, sans-serif" font-size="12" font-weight="700">RESEARCHED</text>
+  <text x="549" y="247" fill="#486581" font-family="Arial, sans-serif" font-size="12" font-weight="700">QUALIFIED</text>
+  <text x="769" y="247" fill="#486581" font-family="Arial, sans-serif" font-size="12" font-weight="700">CONTACTED</text>
+  <text x="989" y="247" fill="#486581" font-family="Arial, sans-serif" font-size="12" font-weight="700">MEETING</text>
+  <rect x="96" y="272" width="180" height="239" rx="12" fill="#F1F5F9"/>
+  <rect x="316" y="272" width="180" height="239" rx="12" fill="#EFFCF9"/>
+  <rect x="536" y="272" width="180" height="239" rx="12" fill="#F0FDFA"/>
+  <rect x="756" y="272" width="180" height="239" rx="12" fill="#FFF8EB"/>
+  <rect x="976" y="272" width="180" height="239" rx="12" fill="#F5F3FF"/>
+  <rect x="111" y="291" width="150" height="65" rx="9" fill="white" stroke="#D9E2EC"/>
+  <text x="126" y="318" fill="#102A43" font-family="Arial, sans-serif" font-size="13" font-weight="700">Mosaic Learning</text>
+  <text x="126" y="340" fill="#627D98" font-family="Arial, sans-serif" font-size="11">Added from CSV</text>
+  <rect x="331" y="291" width="150" height="65" rx="9" fill="white" stroke="#B8E4DE"/>
+  <text x="346" y="318" fill="#102A43" font-family="Arial, sans-serif" font-size="13" font-weight="700">ForgeLine</text>
+  <text x="346" y="340" fill="#627D98" font-family="Arial, sans-serif" font-size="11">Homepage researched</text>
+  <rect x="551" y="291" width="150" height="65" rx="9" fill="white" stroke="#B8E4DE"/>
+  <text x="566" y="318" fill="#102A43" font-family="Arial, sans-serif" font-size="13" font-weight="700">Northstar AI</text>
+  <text x="566" y="340" fill="#0F766E" font-family="Arial, sans-serif" font-size="11">Score 100 · High</text>
+  <rect x="771" y="291" width="150" height="65" rx="9" fill="white" stroke="#F7D9A0"/>
+  <text x="786" y="318" fill="#102A43" font-family="Arial, sans-serif" font-size="13" font-weight="700">StackHarbor</text>
+  <text x="786" y="340" fill="#627D98" font-family="Arial, sans-serif" font-size="11">Draft reviewed</text>
+  <rect x="991" y="291" width="150" height="65" rx="9" fill="white" stroke="#D8D0F8"/>
+  <text x="1006" y="318" fill="#102A43" font-family="Arial, sans-serif" font-size="13" font-weight="700">ClearLedger</text>
+  <text x="1006" y="340" fill="#627D98" font-family="Arial, sans-serif" font-size="11">Follow-up scheduled</text>
+  <text x="76" y="625" fill="#0F766E" font-family="Arial, sans-serif" font-size="13" font-weight="700">A lightweight CRM makes the next action visible without hiding the reasoning.</text>
+</svg>
+

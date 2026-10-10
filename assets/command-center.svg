@@ -1,0 +1,62 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="720" rx="24" fill="#F6F8FB"/>
+  <rect x="34" y="30" width="1212" height="660" rx="20" fill="white" stroke="#D9E2EC"/>
+  <rect x="34" y="30" width="234" height="660" rx="20" fill="#102A43"/>
+  <text x="63" y="80" fill="white" font-family="Arial, sans-serif" font-size="22" font-weight="700">◈ OpsPilot</text>
+  <text x="63" y="108" fill="#B9C7D6" font-family="Arial, sans-serif" font-size="12">AI-assisted revenue operations</text>
+  <rect x="61" y="153" width="181" height="36" rx="9" fill="#1C4B5A"/>
+  <text x="79" y="176" fill="#D9FFFA" font-family="Arial, sans-serif" font-size="13" font-weight="700">Command Center</text>
+  <text x="79" y="222" fill="#B9C7D6" font-family="Arial, sans-serif" font-size="13">Lead Intake</text>
+  <text x="79" y="260" fill="#B9C7D6" font-family="Arial, sans-serif" font-size="13">Research &amp; Score</text>
+  <text x="79" y="298" fill="#B9C7D6" font-family="Arial, sans-serif" font-size="13">Outreach Studio</text>
+  <text x="79" y="336" fill="#B9C7D6" font-family="Arial, sans-serif" font-size="13">CRM Pipeline</text>
+  <line x1="62" y1="390" x2="240" y2="390" stroke="#37566D"/>
+  <text x="63" y="432" fill="#B9C7D6" font-family="Arial, sans-serif" font-size="12">Human-in-the-loop</text>
+  <text x="63" y="454" fill="#B9C7D6" font-family="Arial, sans-serif" font-size="12">Drafts are never sent</text>
+  <text x="298" y="85" fill="#102A43" font-family="Arial, sans-serif" font-size="27" font-weight="700">Command Center</text>
+  <text x="298" y="111" fill="#627D98" font-family="Arial, sans-serif" font-size="13">Prioritize accounts with visible evidence and next actions.</text>
+  <rect x="298" y="145" width="209" height="94" rx="14" fill="#F0FDFA" stroke="#B8E4DE"/>
+  <text x="318" y="174" fill="#627D98" font-family="Arial, sans-serif" font-size="12">ACCOUNTS</text>
+  <text x="318" y="213" fill="#102A43" font-family="Arial, sans-serif" font-size="30" font-weight="700">10</text>
+  <rect x="523" y="145" width="209" height="94" rx="14" fill="#F0FDFA" stroke="#B8E4DE"/>
+  <text x="543" y="174" fill="#627D98" font-family="Arial, sans-serif" font-size="12">HIGH PRIORITY</text>
+  <text x="543" y="213" fill="#0F766E" font-family="Arial, sans-serif" font-size="30" font-weight="700">7</text>
+  <rect x="748" y="145" width="209" height="94" rx="14" fill="#FFF8EB" stroke="#F7D9A0"/>
+  <text x="768" y="174" fill="#627D98" font-family="Arial, sans-serif" font-size="12">AVERAGE FIT SCORE</text>
+  <text x="768" y="213" fill="#102A43" font-family="Arial, sans-serif" font-size="30" font-weight="700">71.5</text>
+  <rect x="973" y="145" width="239" height="94" rx="14" fill="#F7F8FA" stroke="#D9E2EC"/>
+  <text x="993" y="174" fill="#627D98" font-family="Arial, sans-serif" font-size="12">COMPLETE PROFILES</text>
+  <text x="993" y="213" fill="#102A43" font-family="Arial, sans-serif" font-size="30" font-weight="700">4</text>
+  <rect x="298" y="274" width="340" height="370" rx="16" fill="#FBFCFE" stroke="#E4E7EB"/>
+  <text x="321" y="310" fill="#102A43" font-family="Arial, sans-serif" font-size="16" font-weight="700">Pipeline opportunity</text>
+  <line x1="354" y1="580" x2="603" y2="580" stroke="#BCCCDC"/>
+  <line x1="354" y1="350" x2="354" y2="580" stroke="#BCCCDC"/>
+  <rect x="382" y="390" width="43" height="190" rx="5" fill="#0F766E"/>
+  <rect x="459" y="452" width="43" height="128" rx="5" fill="#F59E0B"/>
+  <rect x="536" y="521" width="43" height="59" rx="5" fill="#94A3B8"/>
+  <text x="379" y="608" fill="#627D98" font-family="Arial, sans-serif" font-size="11">High</text>
+  <text x="456" y="608" fill="#627D98" font-family="Arial, sans-serif" font-size="11">Medium</text>
+  <text x="535" y="608" fill="#627D98" font-family="Arial, sans-serif" font-size="11">Low</text>
+  <rect x="658" y="274" width="554" height="370" rx="16" fill="#FBFCFE" stroke="#E4E7EB"/>
+  <text x="684" y="310" fill="#102A43" font-family="Arial, sans-serif" font-size="16" font-weight="700">Highest-priority accounts</text>
+  <text x="684" y="351" fill="#627D98" font-family="Arial, sans-serif" font-size="11">COMPANY</text>
+  <text x="870" y="351" fill="#627D98" font-family="Arial, sans-serif" font-size="11">INDUSTRY</text>
+  <text x="1060" y="351" fill="#627D98" font-family="Arial, sans-serif" font-size="11">FIT</text>
+  <line x1="684" y1="365" x2="1184" y2="365" stroke="#D9E2EC"/>
+  <text x="684" y="402" fill="#102A43" font-family="Arial, sans-serif" font-size="13" font-weight="700">Northstar AI</text>
+  <text x="870" y="402" fill="#486581" font-family="Arial, sans-serif" font-size="13">Artificial Intelligence</text>
+  <rect x="1058" y="384" width="84" height="26" rx="13" fill="#D9F7F2"/>
+  <text x="1081" y="402" fill="#0F766E" font-family="Arial, sans-serif" font-size="12" font-weight="700">100</text>
+  <line x1="684" y1="428" x2="1184" y2="428" stroke="#E4E7EB"/>
+  <text x="684" y="465" fill="#102A43" font-family="Arial, sans-serif" font-size="13" font-weight="700">ForgeLine</text>
+  <text x="870" y="465" fill="#486581" font-family="Arial, sans-serif" font-size="13">Manufacturing</text>
+  <rect x="1058" y="447" width="84" height="26" rx="13" fill="#D9F7F2"/>
+  <text x="1081" y="465" fill="#0F766E" font-family="Arial, sans-serif" font-size="12" font-weight="700">100</text>
+  <line x1="684" y1="491" x2="1184" y2="491" stroke="#E4E7EB"/>
+  <text x="684" y="528" fill="#102A43" font-family="Arial, sans-serif" font-size="13" font-weight="700">StackHarbor</text>
+  <text x="870" y="528" fill="#486581" font-family="Arial, sans-serif" font-size="13">Software</text>
+  <rect x="1058" y="510" width="84" height="26" rx="13" fill="#D9F7F2"/>
+  <text x="1081" y="528" fill="#0F766E" font-family="Arial, sans-serif" font-size="12" font-weight="700">100</text>
+  <text x="684" y="604" fill="#0F766E" font-family="Arial, sans-serif" font-size="12" font-weight="700">Every score links to evidence and research gaps →</text>
+</svg>
+
