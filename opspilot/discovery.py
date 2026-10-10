@@ -35,6 +35,10 @@ _BLOCKED_HOSTS = {
     "indeed.com", "glassdoor.com", "ziprecruiter.com", "careerbuilder.com",
     "monster.com", "builtin.com", "simplyhired.com", "salary.com",
 }
+_PROFILE_HOSTS = {
+    "cbinsights.com", "crunchbase.com", "pitchbook.com", "tracxn.com", "apollo.io",
+    "wikipedia.org", "owler.com", "zoominfo.com", "growjo.com",
+}
 _NON_COMPANY_PATH_PARTS = {
     "jobs", "job", "search", "directory", "list", "rankings", "roundup",
     "careers", "career", "openings", "positions",
@@ -52,6 +56,10 @@ def _host(url: str) -> str:
 
 def _is_blocked_host(host: str) -> bool:
     return any(host == blocked or host.endswith("." + blocked) for blocked in _BLOCKED_HOSTS)
+
+
+def _is_profile_host(host: str) -> bool:
+    return any(host == profile or host.endswith("." + profile) for profile in _PROFILE_HOSTS)
 
 
 def _looks_like_list_page(title: str, url: str) -> bool:
@@ -90,6 +98,8 @@ def _company_name(title: str, url: str) -> str:
         words = candidate.split()
         if len(words) <= 8 and not candidate.endswith((".", ":")):
             if _GENERIC_LABEL_WORDS.intersection(word.lower().strip(".,:&") for word in words):
+                if _is_profile_host(_host(url)):
+                    return candidate
                 return _domain_brand(url) or candidate
             return candidate
     return _domain_brand(url)
