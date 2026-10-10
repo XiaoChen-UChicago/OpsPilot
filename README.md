@@ -4,7 +4,7 @@
 
 OpsPilot turns scattered account research into a transparent, reviewable go-to-market workflow. It imports leads, adds public company context, scores each account against a visible ideal customer profile, prepares personalized outreach drafts, and tracks the pipeline in a lightweight local CRM.
 
-**[Live demo](#run-locally)** · **[Product walkthrough](#product-walkthrough)** · **[Architecture](#architecture)**
+**[Live demo](https://opspilot-bmnuqoekeijj7opqkcrv5s.streamlit.app/)** · **[Product walkthrough](#product-walkthrough)** · **[Architecture](#architecture)**
 
 ![OpsPilot command center](assets/command-center.svg)
 
@@ -72,6 +72,12 @@ streamlit run app.py
 ```
 
 Open `http://localhost:8501`. The synthetic demonstration dataset loads automatically.
+
+## Online demo
+
+Open the hosted Streamlit demo: [opspilot-bmnuqoekeijj7opqkcrv5s.streamlit.app](https://opspilot-bmnuqoekeijj7opqkcrv5s.streamlit.app/).
+
+The demo uses synthetic contacts and keeps outreach in draft mode for human review.
 
 ## CSV schema
 
