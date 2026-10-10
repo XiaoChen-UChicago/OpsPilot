@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from io import StringIO
 from pathlib import Path
 
@@ -83,6 +84,8 @@ def ensure_scored(frame: pd.DataFrame, profile: ScoringProfile | None = None) ->
 
 if "leads" not in st.session_state:
     st.session_state.leads = ensure_scored(load_sample())
+if "demo_sends" not in st.session_state:
+    st.session_state.demo_sends = []
 
 with st.sidebar:
     st.markdown("### ◈ OpsPilot")
@@ -285,7 +288,7 @@ with research_tab:
 
 with outreach_tab:
     st.subheader("Prepare outreach for human review")
-    st.caption("OpsPilot drafts messages but never sends them. A person verifies the facts, tone, and recipient first.")
+    st.caption("OpsPilot drafts messages and offers a safe send simulation. No email leaves this demo.")
     selected_company = st.selectbox(
         "Choose an account",
         st.session_state.leads.sort_values("lead_score", ascending=False)["company"].tolist(),
@@ -304,9 +307,25 @@ with outreach_tab:
             st.write(selected["score_reasons"])
     with draft_col:
         st.markdown("#### Review-ready draft")
-        st.text_input("Subject", value=subject)
-        st.text_area("Message", value=body, height=320)
-        st.caption("Before use: verify every company claim, add a genuine personal observation, and obtain approval before sending.")
+        edited_subject = st.text_input("Subject", value=subject, key=f"outreach_subject_{selected_company}")
+        edited_body = st.text_area("Message", value=body, height=320, key=f"outreach_body_{selected_company}")
+        st.caption("Review the facts, tone, and recipient before using the demo action below.")
+        recipient = str(selected.get("email", "")).strip() or "demo.recipient@example.com"
+        st.markdown(f"**Demo recipient:** `{recipient}`")
+        approved = st.checkbox("I reviewed this draft and recipient", key=f"outreach_approved_{selected_company}")
+        if st.button("Simulate send", type="primary", use_container_width=True, disabled=not approved):
+            st.session_state.demo_sends.insert(0, {
+                "company": selected_company,
+                "recipient": recipient,
+                "subject": edited_subject,
+                "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "status": "Simulated — not sent",
+            })
+            st.success("Demo send recorded. No email was sent.")
+
+    if st.session_state.demo_sends:
+        st.markdown("#### Demo send history")
+        st.dataframe(pd.DataFrame(st.session_state.demo_sends), use_container_width=True, hide_index=True)
 
 with crm_tab:
     st.subheader("Manage a lightweight local pipeline")
