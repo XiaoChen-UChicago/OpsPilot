@@ -14,7 +14,7 @@ from opspilot.auth import access_token, auth_is_configured, configured_provider,
 from opspilot.mailer import MailSendError, send_batch
 from opspilot.models import LEAD_COLUMNS, canonicalize_leads
 from opspilot.outreach import create_outreach_columns, generate_draft
-from opspilot.scoring import DEFAULT_INDUSTRIES, ScoringProfile, score_dataframe
+from opspilot.scoring import DEFAULT_INDUSTRIES, ScoringProfile, score_dataframe, score_lead
 from opspilot.storage import PIPELINE_STATUSES, load_leads, update_status, upsert_leads
 
 
