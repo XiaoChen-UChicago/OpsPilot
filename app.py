@@ -52,9 +52,13 @@ st.markdown(
     [data-baseweb="input"] input, [data-baseweb="textarea"] textarea, [data-testid="stNumberInput"] input { color: var(--ink) !important; -webkit-text-fill-color: var(--ink) !important; }
     [data-baseweb="input"] input::placeholder, [data-baseweb="textarea"] textarea::placeholder { color: #829ab1 !important; opacity: 1 !important; }
     [data-testid="stForm"] { background: rgba(255,255,255,.84); border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.1rem .2rem; box-shadow: 0 8px 24px rgba(16, 42, 67, .05); }
-    button[kind="primary"] { background: var(--accent) !important; border-color: var(--accent) !important; color: #ffffff !important; }
-    button[kind="primary"]:hover { background: var(--accent-dark) !important; border-color: var(--accent-dark) !important; }
-    button:not([kind="primary"]) { color: #334e68 !important; border-color: #bcccdc !important; }
+    button[kind="primary"], button[data-testid="baseButton-primary"] { background: var(--accent) !important; border-color: var(--accent) !important; color: #ffffff !important; }
+    button[kind="primary"] *, button[data-testid="baseButton-primary"] * { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+    button[kind="primary"]:hover, button[data-testid="baseButton-primary"]:hover { background: var(--accent-dark) !important; border-color: var(--accent-dark) !important; }
+    button:not([kind="primary"]):not([data-testid="manage-app-button"]) { color: #334e68 !important; border-color: #bcccdc !important; background: #ffffff !important; }
+    button:not([kind="primary"]):not([data-testid="manage-app-button"]) * { color: #334e68 !important; -webkit-text-fill-color: #334e68 !important; }
+    [data-testid="stSidebar"] button:not([kind="primary"]) { color: #e6edf5 !important; border-color: rgba(230,237,245,.35) !important; background: transparent !important; }
+    [data-testid="stSidebar"] button:not([kind="primary"]) * { color: #e6edf5 !important; -webkit-text-fill-color: #e6edf5 !important; }
     [data-baseweb="tab-list"] { gap: .45rem; border-bottom: 1px solid var(--line); }
     [data-baseweb="tab"] { color: #526579 !important; font-weight: 600 !important; }
     [data-baseweb="tab"][aria-selected="true"] { color: var(--accent) !important; border-bottom-color: var(--accent) !important; }
