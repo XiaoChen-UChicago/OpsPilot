@@ -165,6 +165,57 @@ def configured_discovery_key() -> str:
         return ""
 
 
+def decision_candidates() -> pd.DataFrame:
+    """Return the best available opportunity set for the decision workspace."""
+    discovered = st.session_state.get("discovery_results", pd.DataFrame())
+    if isinstance(discovered, pd.DataFrame) and not discovered.empty:
+        return discovered.copy()
+    leads = st.session_state.get("leads", pd.DataFrame())
+    if isinstance(leads, pd.DataFrame) and not leads.empty:
+        return leads.copy()
+    return pd.DataFrame()
+
+
+def decision_matrix(frame: pd.DataFrame) -> pd.DataFrame:
+    """Create editable, explainable decision inputs from opportunity evidence."""
+    rows: list[dict[str, object]] = []
+    for _, row in frame.head(10).iterrows():
+        source_url = str(row.get("source_url", row.get("website", ""))).strip()
+        description = str(row.get("description", "")).strip()
+        contact = str(row.get("contact_name", "")).strip() or str(row.get("email", "")).strip()
+        fit = int(row.get("opportunity_score", row.get("lead_score", 50)) or 50)
+        evidence = 85 if source_url and description else 60 if source_url else 35
+        speed = 75 if contact else 45
+        risk = 25 if source_url and description else 50
+        upside = min(90, max(45, fit + 5))
+        rows.append({
+            "company": str(row.get("company", "Unknown company")),
+            "fit": max(0, min(100, fit)),
+            "upside": upside,
+            "evidence": evidence,
+            "speed": speed,
+            "risk": risk,
+        })
+    return pd.DataFrame(rows)
+
+
+def decision_score(table: pd.DataFrame, weights: dict[str, int]) -> pd.DataFrame:
+    scored = table.copy()
+    total_weight = max(1, sum(weights.values()))
+    scored["decision_score"] = (
+        scored["fit"] * weights["fit"]
+        + scored["upside"] * weights["upside"]
+        + scored["evidence"] * weights["evidence"]
+        + scored["speed"] * weights["speed"]
+        + (100 - scored["risk"]) * weights["risk"]
+    ) / total_weight
+    scored["decision_score"] = scored["decision_score"].round(1)
+    scored["recommendation"] = scored["decision_score"].map(
+        lambda value: "Pursue now" if value >= 75 else "Validate first" if value >= 55 else "Defer"
+    )
+    return scored.sort_values("decision_score", ascending=False).reset_index(drop=True)
+
+
 if "leads" not in st.session_state:
     saved_leads = load_leads(WORKSPACE_ID) if AUTH_ENABLED else pd.DataFrame()
     st.session_state.leads = ensure_scored(saved_leads[LEAD_COLUMNS]) if not saved_leads.empty else (
@@ -200,8 +251,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-discovery_tab, dashboard_tab, intake_tab, research_tab, outreach_tab, crm_tab, method_tab = st.tabs(
-    ["Discover Opportunities", "Command Center", "Lead Intake", "Research & Score", "Outreach Studio", "CRM Pipeline", "Methodology"]
+discovery_tab, decision_tab, dashboard_tab, intake_tab, research_tab, outreach_tab, crm_tab, method_tab = st.tabs(
+    ["Discover Opportunities", "Decision Canvas", "Command Center", "Lead Intake", "Research & Score", "Outreach Studio", "CRM Pipeline", "Methodology"]
 )
 
 with discovery_tab:
@@ -293,6 +344,95 @@ with discovery_tab:
                     if AUTH_ENABLED:
                         upsert_leads(st.session_state.leads, WORKSPACE_ID)
                     st.success(f"Added {opportunity['company']} to your workspace.")
+
+with decision_tab:
+    st.subheader("Decision Canvas")
+    st.caption("Turn a promising result into a transparent decision. Edit assumptions, compare options, and record the next validation step.")
+    candidates = decision_candidates()
+    if candidates.empty:
+        st.info("Run a live or demo discovery first. Your results will appear here for comparison.")
+    else:
+        st.markdown("#### 1. Set what matters most")
+        st.caption("Weights control the recommendation. Risk is treated as a penalty, so a higher risk rating lowers the score.")
+        weight_cols = st.columns(5)
+        with weight_cols[0]:
+            fit_weight = st.slider("Strategic fit", 0, 100, 30, key="decision_weight_fit")
+        with weight_cols[1]:
+            upside_weight = st.slider("Upside", 0, 100, 25, key="decision_weight_upside")
+        with weight_cols[2]:
+            evidence_weight = st.slider("Evidence", 0, 100, 20, key="decision_weight_evidence")
+        with weight_cols[3]:
+            speed_weight = st.slider("Speed", 0, 100, 15, key="decision_weight_speed")
+        with weight_cols[4]:
+            risk_weight = st.slider("Risk", 0, 100, 10, key="decision_weight_risk")
+        weights = {"fit": fit_weight, "upside": upside_weight, "evidence": evidence_weight, "speed": speed_weight, "risk": risk_weight}
+
+        st.markdown("#### 2. Edit your assumptions")
+        st.caption("The starting values come from the opportunity evidence. Change them when your judgment differs.")
+        base_matrix = decision_matrix(candidates)
+        edited_matrix = st.data_editor(
+            base_matrix,
+            hide_index=True,
+            use_container_width=True,
+            key="decision_matrix_editor",
+            column_config={
+                "company": st.column_config.TextColumn("Company", disabled=True),
+                "fit": st.column_config.NumberColumn("Strategic fit", min_value=0, max_value=100, step=5),
+                "upside": st.column_config.NumberColumn("Upside", min_value=0, max_value=100, step=5),
+                "evidence": st.column_config.NumberColumn("Evidence", min_value=0, max_value=100, step=5),
+                "speed": st.column_config.NumberColumn("Speed", min_value=0, max_value=100, step=5),
+                "risk": st.column_config.NumberColumn("Risk", min_value=0, max_value=100, step=5),
+            },
+        )
+        scored_decisions = decision_score(edited_matrix, weights)
+        st.markdown("#### 3. Compare the decision")
+        decision_col, chart_col = st.columns([1.25, 1])
+        with decision_col:
+            st.dataframe(
+                scored_decisions[["company", "decision_score", "recommendation"]],
+                hide_index=True,
+                use_container_width=True,
+                column_config={
+                    "decision_score": st.column_config.ProgressColumn("Decision score", min_value=0, max_value=100, format="%.1f"),
+                },
+            )
+        with chart_col:
+            chart = px.bar(
+                scored_decisions,
+                x="decision_score",
+                y="company",
+                orientation="h",
+                range_x=[0, 100],
+                color="decision_score",
+                color_continuous_scale=["#f59e0b", "#0f766e"],
+                labels={"decision_score": "Decision score", "company": ""},
+            )
+            chart.update_layout(height=280, margin=dict(l=0, r=0, t=10, b=10), coloraxis_showscale=False)
+            st.plotly_chart(chart, use_container_width=True, config={"displayModeBar": False})
+
+        selected_decision = st.selectbox("Open a decision brief", scored_decisions["company"].tolist(), key="decision_selected_company")
+        selected_score = scored_decisions[scored_decisions["company"] == selected_decision].iloc[0]
+        selected_source = candidates[candidates["company"] == selected_decision].iloc[0]
+        st.markdown("#### 4. Decision brief")
+        brief_col, next_col = st.columns([1.2, 1])
+        with brief_col:
+            st.metric("Recommendation", selected_score["recommendation"], f"{selected_score['decision_score']:.1f}/100")
+            st.write(f"**Evidence:** {str(selected_source.get('description', '')).strip()[:700] or 'No public evidence captured yet.'}")
+            source_url = str(selected_source.get("source_url", selected_source.get("website", ""))).strip()
+            if source_url:
+                st.markdown(f"**Source:** [{selected_source.get('source_title') or source_url}]({source_url})")
+        with next_col:
+            st.text_area("What is still unknown?", placeholder="Example: confirm budget owner, timing, and whether this workflow is a current priority.", key="decision_unknowns")
+            st.text_area("Next validation test", placeholder="Example: send one tailored note or schedule a 15-minute discovery call.", key="decision_next_test")
+            if st.button("Create decision memo", type="primary", key="create_decision_memo"):
+                memo = (
+                    f"# Decision memo — {selected_decision}\n\n"
+                    f"Recommendation: {selected_score['recommendation']} ({selected_score['decision_score']:.1f}/100)\n\n"
+                    f"Scores: fit {selected_score['fit']}, upside {selected_score['upside']}, evidence {selected_score['evidence']}, speed {selected_score['speed']}, risk {selected_score['risk']}.\n\n"
+                    f"Unknowns: {st.session_state.get('decision_unknowns', '').strip() or 'Not recorded'}\n\n"
+                    f"Next validation test: {st.session_state.get('decision_next_test', '').strip() or 'Not recorded'}\n"
+                )
+                st.download_button("Download decision memo", memo, file_name=f"{selected_decision.lower().replace(' ', '-')}-decision.md", key="download_decision_memo")
 
 with dashboard_tab:
     leads = st.session_state.leads
