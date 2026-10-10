@@ -99,6 +99,31 @@ with dashboard_tab:
     col3.metric("Average fit score", average_score)
     col4.metric("Complete profiles", complete_profiles)
 
+    st.subheader("Try the workflow")
+    st.caption("Add one account here to see it normalized, scored, and added to the pipeline. Use **Lead Intake** for CSV uploads and richer fields.")
+    with st.form("quick_add_account"):
+        quick_col1, quick_col2, quick_col3 = st.columns([1.2, 1, 1])
+        with quick_col1:
+            quick_company = st.text_input("Company *", placeholder="Example AI")
+        with quick_col2:
+            quick_industry = st.text_input("Industry", placeholder="Software")
+        with quick_col3:
+            quick_website = st.text_input("Website", placeholder="https://example.com")
+        quick_submit = st.form_submit_button("Add account and score", type="primary", use_container_width=True)
+    if quick_submit:
+        if not quick_company.strip():
+            st.warning("Enter a company name first.")
+        else:
+            quick_lead = pd.DataFrame([{
+                "company": quick_company.strip(), "website": quick_website.strip(),
+                "contact_name": "", "title": "", "email": "", "industry": quick_industry.strip(),
+                "employee_count": 0, "country": "", "description": "", "source": "Quick start",
+            }])
+            combined = pd.concat([st.session_state.leads[LEAD_COLUMNS], quick_lead], ignore_index=True)
+            st.session_state.leads = ensure_scored(combined)
+            st.success(f"Added {quick_company.strip()} and recalculated its fit score.")
+            st.rerun()
+
     chart_col, table_col = st.columns([0.9, 1.5])
     with chart_col:
         st.subheader("Pipeline opportunity")
