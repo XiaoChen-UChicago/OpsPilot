@@ -55,10 +55,10 @@ st.markdown(
     button[kind="primary"], button[kind="primaryFormSubmit"], button[data-testid="baseButton-primary"], button[data-testid="stBaseButton-primaryFormSubmit"] { background: var(--accent) !important; border-color: var(--accent) !important; color: #ffffff !important; }
     button[kind="primary"] *, button[kind="primaryFormSubmit"] *, button[data-testid="baseButton-primary"] *, button[data-testid="stBaseButton-primaryFormSubmit"] * { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
     button[kind="primary"]:hover, button[kind="primaryFormSubmit"]:hover, button[data-testid="baseButton-primary"]:hover, button[data-testid="stBaseButton-primaryFormSubmit"]:hover { background: var(--accent-dark) !important; border-color: var(--accent-dark) !important; }
-    button:not([kind="primary"]):not([data-testid="manage-app-button"]) { color: #334e68 !important; border-color: #bcccdc !important; background: #ffffff !important; }
-    button:not([kind="primary"]):not([data-testid="manage-app-button"]) * { color: #334e68 !important; -webkit-text-fill-color: #334e68 !important; }
-    [data-testid="stSidebar"] button:not([kind="primary"]) { color: #e6edf5 !important; border-color: rgba(230,237,245,.35) !important; background: transparent !important; }
-    [data-testid="stSidebar"] button:not([kind="primary"]) * { color: #e6edf5 !important; -webkit-text-fill-color: #e6edf5 !important; }
+    button:not([kind="primary"]):not([kind="primaryFormSubmit"]):not([data-testid="baseButton-primary"]):not([data-testid="stBaseButton-primaryFormSubmit"]):not([data-testid="manage-app-button"]) { color: #334e68 !important; border-color: #bcccdc !important; background: #ffffff !important; }
+    button:not([kind="primary"]):not([kind="primaryFormSubmit"]):not([data-testid="baseButton-primary"]):not([data-testid="stBaseButton-primaryFormSubmit"]):not([data-testid="manage-app-button"]) * { color: #334e68 !important; -webkit-text-fill-color: #334e68 !important; }
+    [data-testid="stSidebar"] button:not([kind="primary"]):not([kind="primaryFormSubmit"]) { color: #e6edf5 !important; border-color: rgba(230,237,245,.35) !important; background: transparent !important; }
+    [data-testid="stSidebar"] button:not([kind="primary"]):not([kind="primaryFormSubmit"]) * { color: #e6edf5 !important; -webkit-text-fill-color: #e6edf5 !important; }
     [data-baseweb="tab-list"] { gap: .45rem; border-bottom: 1px solid var(--line); }
     [data-baseweb="tab"] { color: #526579 !important; font-weight: 600 !important; }
     [data-baseweb="tab"][aria-selected="true"] { color: var(--accent) !important; border-bottom-color: var(--accent) !important; }
