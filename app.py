@@ -92,7 +92,7 @@ with st.sidebar:
     st.markdown("1. Import leads\n2. Add public context\n3. Score with visible rules\n4. Review outreach drafts\n5. Manage the pipeline")
     st.markdown("---")
     st.info("Demo mode uses synthetic contacts. Drafts are never sent automatically.")
-    if st.button("Reset demo data", use_container_width=True):
+    if st.button("Reset demo data", type="primary", use_container_width=True):
         st.session_state.leads = ensure_scored(load_sample())
         st.rerun()
 
