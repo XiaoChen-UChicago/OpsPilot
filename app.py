@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from html import escape
 from io import StringIO
 from pathlib import Path
 import re
@@ -80,6 +81,7 @@ st.markdown(
     [data-baseweb="tab"] { color: #526579 !important; font-weight: 600 !important; }
     [data-baseweb="tab"][aria-selected="true"] { color: var(--accent) !important; border-bottom-color: var(--accent) !important; }
     .signal { border-left: 4px solid #0f766e; padding: .7rem 1rem; background: #f0fdfa; border-radius: 0 10px 10px 0; }
+    .source-excerpt { color: #334e68; font-size: .96rem; line-height: 1.55; background: #f8fafc; border: 1px solid #d9e2ec; border-radius: 10px; padding: .8rem 1rem; max-height: 220px; overflow: auto; white-space: pre-wrap; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -278,6 +280,15 @@ def validation_experiment(row: pd.Series, score_row: pd.Series | None = None) ->
     return {"action": action, "test": test, "success": success}
 
 
+def plain_excerpt(value: object, limit: int = 1200) -> str:
+    """Render external snippets as bounded plain text, never as user-supplied Markdown."""
+    text = str(value or "")
+    text = re.sub(r"#{1,6}\s*", "", text)
+    text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text[:limit] + ("…" if len(text) > limit else "")
+
+
 if "leads" not in st.session_state:
     saved_leads = load_leads(WORKSPACE_ID) if AUTH_ENABLED else pd.DataFrame()
     st.session_state.leads = ensure_scored(saved_leads[LEAD_COLUMNS]) if not saved_leads.empty else (
@@ -397,7 +408,8 @@ with discover_tab:
                 st.write(f"**Why it matches:** {opportunity['match_reason']}")
                 st.write(f"**Recommended action:** {opportunity['recommended_action']}")
                 st.write(f"**Contact:** {opportunity['contact_name']} · {opportunity['title']}")
-                st.write(f"**Public context:** {opportunity['description']}")
+                st.markdown("**Public context**")
+                st.markdown(f"<div class='source-excerpt'>{escape(plain_excerpt(opportunity['description']))}</div>", unsafe_allow_html=True)
                 if str(opportunity.get("source_url", "")).strip():
                     st.markdown(f"**Source:** [{opportunity.get('source_title') or opportunity['source_url']}]({opportunity['source_url']})")
                 assessment = evidence_assessment(opportunity)
@@ -496,7 +508,11 @@ with decide_tab:
         brief_col, next_col = st.columns([1.2, 1])
         with brief_col:
             st.metric("Recommendation", selected_score["recommendation"], f"{selected_score['decision_score']:.1f}/100")
-            st.write(f"**Evidence:** {str(selected_source.get('description', '')).strip()[:700] or 'No public evidence captured yet.'}")
+            st.markdown("**Evidence**")
+            st.markdown(
+                f"<div class='source-excerpt'>{escape(plain_excerpt(selected_source.get('description', ''), 900) or 'No public evidence captured yet.')}</div>",
+                unsafe_allow_html=True,
+            )
             st.caption(f"{selected_assessment['source_kind']} · Evidence confidence {selected_assessment['confidence']}/100")
             with st.expander("Decision basis"):
                 st.markdown("**Facts captured from the source**")
