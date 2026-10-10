@@ -523,6 +523,14 @@ with decide_tab:
                 st.download_button("Download decision memo", memo, file_name=f"{selected_decision.lower().replace(' ', '-')}-decision.md", key="download_decision_memo")
 
 with home_tab:
+    st.subheader("Start here")
+    st.caption("Follow the four-step path: discover an opportunity, compare the options, validate the best one, then act and track the result.")
+    guide_col1, guide_col2, guide_col3, guide_col4 = st.columns(4)
+    guide_col1.markdown("**1 · Discover**\n\nSearch for real companies and evidence.")
+    guide_col2.markdown("**2 · Decide**\n\nCompare fit, upside, evidence, speed, and risk.")
+    guide_col3.markdown("**3 · Validate**\n\nRun the smallest test that can change your decision.")
+    guide_col4.markdown("**4 · Act & Track**\n\nResearch contacts, draft outreach, and manage status.")
+
     leads = st.session_state.leads
     high_priority = leads[leads["priority_tier"] == "High"]
     average_score = round(float(leads["lead_score"].mean()), 1) if not leads.empty else 0
@@ -534,8 +542,8 @@ with home_tab:
     col3.metric("Average fit score", average_score)
     col4.metric("Complete profiles", complete_profiles)
 
-    st.subheader("Try the workflow")
-    st.caption("Add one account here to see it normalized, scored, and added to the pipeline. Use **Lead Intake** for CSV uploads and richer fields.")
+    st.subheader("Quick add an account")
+    st.caption("Use this for a company you already know. For web discovery or CSV import, use **Discover** or **Act & Track → Import**.")
     with st.form("quick_add_account"):
         quick_col1, quick_col2, quick_col3 = st.columns([1.2, 1, 1])
         with quick_col1:
