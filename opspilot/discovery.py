@@ -27,13 +27,17 @@ _GENERIC_TITLE_PATTERNS = (
     r"\btop\s*\d*\b",
     r"\bbest\b.*\bcompan(?:y|ies)\b",
     r"\bcompan(?:y|ies)\b.*\b(?:list|directory|ranked|based)\b",
+    r"\b(?:top|best|leading|breakout|emerging)\b.*\b(?:compan(?:y|ies)|software|tools?|platforms?|startups?)\b",
+    r"\b\d[\d,]*\b.*\bcompan(?:y|ies)\b",
+    r"\bcompan(?:y|ies)\b\s+(?:to|for|you|that)\b",
     r"\b\d[\d,]*\+?\s+(?:ai|automation|workflow|software|tech|startup|company|job)",
     r"\bjobs?\b|\bjob listings?\b|\bcareers?\b|\bsalar(?:y|ies)\b",
-    r"\b(?:guide|roundup|market map|report|trends?)\b",
+    r"\b(?:guide|roundup|market map|report|trends?|newsletter|next gig)\b",
 )
 _BLOCKED_HOSTS = {
     "indeed.com", "glassdoor.com", "ziprecruiter.com", "careerbuilder.com",
     "monster.com", "builtin.com", "simplyhired.com", "salary.com",
+    "substack.com", "medium.com",
 }
 _PROFILE_HOSTS = {
     "cbinsights.com", "crunchbase.com", "pitchbook.com", "tracxn.com", "apollo.io",
