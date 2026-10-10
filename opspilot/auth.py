@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 import streamlit as st
@@ -20,7 +21,7 @@ def configured_provider() -> str | None:
     """Find the first named OIDC provider configured for the app."""
     auth = _auth_secrets()
     for name, value in auth.items():
-        if isinstance(value, dict) and value.get("client_id") and value.get("server_metadata_url"):
+        if isinstance(value, Mapping) and value.get("client_id") and value.get("server_metadata_url"):
             return str(name)
     return None
 
