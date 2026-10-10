@@ -59,6 +59,8 @@ st.markdown(
     button:not([kind="primary"]):not([kind="primaryFormSubmit"]):not([data-testid="baseButton-primary"]):not([data-testid="stBaseButton-primaryFormSubmit"]):not([data-testid="manage-app-button"]) * { color: #334e68 !important; -webkit-text-fill-color: #334e68 !important; }
     [data-testid="stSidebar"] button:not([kind="primary"]):not([kind="primaryFormSubmit"]) { color: #e6edf5 !important; border-color: rgba(230,237,245,.35) !important; background: transparent !important; }
     [data-testid="stSidebar"] button:not([kind="primary"]):not([kind="primaryFormSubmit"]) * { color: #e6edf5 !important; -webkit-text-fill-color: #e6edf5 !important; }
+    section[data-testid="stSidebar"] button[data-testid="stBaseButton-secondary"] { background: transparent !important; color: #e6edf5 !important; border-color: rgba(230,237,245,.35) !important; }
+    section[data-testid="stSidebar"] button[data-testid="stBaseButton-secondary"] * { color: #e6edf5 !important; -webkit-text-fill-color: #e6edf5 !important; }
     [data-baseweb="tab-list"] { gap: .45rem; border-bottom: 1px solid var(--line); }
     [data-baseweb="tab"] { color: #526579 !important; font-weight: 600 !important; }
     [data-baseweb="tab"][aria-selected="true"] { color: var(--accent) !important; border-bottom-color: var(--accent) !important; }
